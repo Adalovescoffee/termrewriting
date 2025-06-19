@@ -89,7 +89,7 @@ impl Parser {
         },
         TokenType::LParen =>{
             self.expect_and_advance(TokenType::LParen)?;
-            let node = self.parse_tuah()?;
+            let node = self.parse_term()?;
             self.expect_and_advance(TokenType::RParen)?;
             Ok(node)
         },
@@ -102,70 +102,50 @@ impl Parser {
     node
     }
     // for * / and stuff inside () 
-    fn parse_tuah(&mut self)-> Result<Node, ParserError>{
-        let mut lhs = self.parse_factor()?;
-        while self.peek_token_is(TokenType::Multiply) ||
-      self.peek_token_is(TokenType::Divide)   ||
-      matches!(self.peek_token, TokenType::Integer(_)) ||
-      matches!(self.peek_token, TokenType::Variable(_)) ||
-      self.peek_token_is(TokenType::LParen){
-        if self.peek_token_is(TokenType::Multiply){
-            self.advance();
-            self.advance();
-            let rhs = self.parse_factor()?;
-            lhs = Node::BinaryOp(Box::new(lhs), Operator::Multiply,Box::new(rhs));
-
+    // parser.rs
+fn parse_tuah(&mut self) -> Result<Node, ParserError> {
+    let mut lhs = self.parse_factor()?;
+    
+    loop {
+        match self.current_token {
+            TokenType::Multiply => {
+                self.advance(); // Consume '*'
+                let rhs = self.parse_factor()?;
+                lhs = Node::BinaryOp(Box::new(lhs), Operator::Multiply, Box::new(rhs));
+            },
+            TokenType::Divide => {
+                self.advance(); // Consume '/'
+                let rhs = self.parse_factor()?;
+                lhs = Node::BinaryOp(Box::new(lhs), Operator::Divide, Box::new(rhs));
+            },
+            TokenType::Integer(_) | TokenType::Variable(_) | TokenType::LParen => {
+                // Implicit multiplication
+                let rhs = self.parse_factor()?;
+                lhs = Node::BinaryOp(Box::new(lhs), Operator::Multiply, Box::new(rhs));
+            },
+            _ => break,
         }
-       else if self.peek_token_is(TokenType::Divide){
-            self.advance();
-            self.advance();
-            let rhs = self.parse_factor()?;
-            lhs = Node::BinaryOp(Box::new(lhs), Operator::Divide, Box::new(rhs));
-
-        }
-        else if matches!(self.peek_token, TokenType::Integer(_))|| self.peek_token_is(TokenType::LParen)||matches!(self.peek_token, TokenType::Variable(_)){
-            self.advance();
-            let rhs = self.parse_factor()?;
-            lhs = Node::BinaryOp(Box::new(lhs), Operator::Multiply, Box::new(rhs));
-
-        }
-        
-      }
-      Ok(lhs)
-
-        
     }
-    pub fn parse_term(&mut self)-> Result<Node, ParserError> {
-        
+    
+    Ok(lhs)
+}
+    pub fn parse_term(&mut self) -> Result<Node, ParserError> {
         let mut lhs = self.parse_tuah()?; 
-
-        
-        loop {
-            let operator: Operator;
-
-            match self.peek_token {
-                TokenType::Plus => {
-                    operator = Operator::Add;
-                },
-                TokenType::Minus => {
-                    operator = Operator::Substract;
-                },
-                // If it's not '+' or '-', tis over
-                _ => break,
-            }
-            match operator {
-                Operator::Add => self.expect_and_advance(TokenType::Plus)?,
-                Operator::Substract => self.expect_and_advance(TokenType::Minus)?,
-                _ => unreachable!("Should only be Add or Subtract here"), 
-            }
-
-           
-            let rhs = self.parse_tuah()?; 
-
+    
+        while matches!(self.current_token, TokenType::Plus | TokenType::Minus) {
+            let operator = match self.current_token {
+                TokenType::Plus => Operator::Add,
+                TokenType::Minus => Operator::Substract,
+                _ => unreachable!(),
+            };
+    
+            self.advance(); // consume + or -
+            let rhs = self.parse_tuah()?;
             lhs = Node::BinaryOp(Box::new(lhs), operator, Box::new(rhs));
         }
-
-       
+    
         Ok(lhs)
     }
+    
+       
 }

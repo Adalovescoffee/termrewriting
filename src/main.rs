@@ -12,13 +12,14 @@ fn main() {
         "10 * (x + 5)",
         "x + y * z - 1",
         "2(x + 3)", // Implicit multiplication: 2*(x+3)
-        "a = b + 1", // Example with assignment (if you implement parsing statements later)
-        "x == y",    // Example with equality (if you implement parsing comparisons later)
+        "a = b + 1", // Example with assignment 
+        "x == y",    // Example with equality 
         "123",       // Single number
         "z",         // Single variable
         "5 +",       // Error case: incomplete expression
         "3 * (4 + 5",// Error case: missing parenthesis
         "# invalid", // Error case: illegal character
+        "ab"
     ];
 
     for (i, expr_str) in expressions.into_iter().enumerate() {
