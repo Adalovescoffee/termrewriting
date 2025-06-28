@@ -1,12 +1,48 @@
 use std::any::Any;
 use std::fmt;
 use crate::lexer::{Lexer,TokenType};
-#[derive(PartialEq,Debug)]
+#[derive(PartialEq,Debug,Clone)]
 pub enum Node{
     Number(i64),
     Variable(char),
     BinaryOp(Box<Node>,Operator,Box<Node>)
 
+}
+impl Node{
+  pub fn same_type(&self, other:&Node) -> bool {
+    match (self, other) {
+        (Node::Number(_),Node::Number(_)) => true, 
+        (Node::BinaryOp(_,op_self,_), Node::BinaryOp(_,op_other,_))=> op_self == op_other,
+        (Node::Variable(_),_)=>true,
+        _ => false,
+
+
+
+
+    }
+
+    
+  }
+  pub fn get_char(&self) -> Option<char>{
+    match(self){
+        Node::Variable(s)=>Some(*s) ,
+        
+        _ =>None,
+
+    }
+
+
+  }
+ pub fn get_number(&self) -> Option<i64>{
+    match(self){
+        Node::Number(s)=>Some(*s),
+        _ =>None,
+
+
+    }
+
+
+ }
 }
 #[derive(Debug, PartialEq)]
 pub enum ParserError {
@@ -16,7 +52,7 @@ pub enum ParserError {
     SyntaxError(String),
     LexerError(String), // Placeholder if lexer errors need to be propagated
 }
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq,Clone)]
 pub enum Operator{
     Add,
     Substract,
@@ -165,6 +201,7 @@ fn parse_tuah(&mut self) -> Result<Node, ParserError> {
     
         Ok(lhs)
     }
+    
     
        
 }

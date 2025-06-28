@@ -6,10 +6,10 @@ pub enum TokenType {
     Divide,
     LParen,
     RParen,
-    Eq,     // Corrected to represent '==' comparison
-    Assign, // Added to represent '=' assignment
+    Eq,     
+    Assign, 
     Integer(i64),
-    Variable(char), // Single-character variables
+    Variable(char), 
     Eof,
     Illegal,
 }
