@@ -3,7 +3,7 @@ mod parser;
 mod rewriterule;
 use lexer::Lexer;
 use parser::{Parser, Node, ParserError}; // Import what you need from parser
-
+use rewriterule::{};
 fn main() {
     // Test expressions
     let expressions = vec![ 
@@ -25,7 +25,13 @@ fn main() {
         "3 * (4 + 5",// Error case: missing parenthesis
         "# invalid", // Error case: illegal character
     ];
-
+    let input1 = "a*b".to_string();
+    let input2 = "(2*3)+4".to_string();
+    let lexer1 = Lexer::new(input1);
+    let lexer2 = Lexer::new(input2);
+    let parser1 = Parser::new(lexer1);
+    let parser2 = Parser::new(lexer2);
+    
     for (i, expr_str) in expressions.into_iter().enumerate() {
         println!("\n--- Parsing Expression {} ---", i + 1);
         println!("Input: \"{}\"", expr_str);

@@ -9,7 +9,7 @@ pub enum Node{
 
 }
 impl Node{
-  pub fn same_type(&self, other:&Node) -> bool {
+  pub fn same_type(&self, other:&Node) -> bool { // i think actually that this is useless but i might be wrong
     match (self, other) {
         (Node::Number(_),Node::Number(_)) => true, 
         (Node::BinaryOp(_,op_self,_), Node::BinaryOp(_,op_other,_))=> op_self == op_other,
@@ -165,7 +165,7 @@ fn parse_tuah(&mut self) -> Result<Node, ParserError> {
             
             TokenType::Multiply => {
                 self.advance(); // Consume '*'
-                let rhs = self.parse_factor()?;
+            let rhs = self.parse_factor()?;
                 lhs = Node::BinaryOp(Box::new(lhs), Operator::Multiply, Box::new(rhs));
             },
             TokenType::Divide => {
