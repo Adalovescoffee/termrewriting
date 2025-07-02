@@ -5,8 +5,8 @@ An experimental library to learn about term rewriting system with goal to implem
 # TO-DO: 
 
 - [x] terms 
-- [ ] parser implementation
-- [ ] apply axioms/rewrite rules on terms 
+- [x] parser implementation
+- [x] apply axioms/rewrite rules on terms 
 - [ ] find critical terms 
 - [ ] superposition 
 - [ ] ... 

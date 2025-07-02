@@ -4,6 +4,8 @@ mod rewriterule;
 use lexer::Lexer;
 use parser::{Parser, Node, ParserError}; // Import what you need from parser
 use rewriterule::{};
+
+use crate::rewriterule::Rewrite;
 fn main() {
     // Test expressions
     let expressions = vec![ 
@@ -25,14 +27,100 @@ fn main() {
         "3 * (4 + 5",// Error case: missing parenthesis
         "# invalid", // Error case: illegal character
     ];
-    let input1 = "a*b".to_string();
-    let input2 = "(2*3)+4".to_string();
+    let input1 = "(2*3)+4".to_string();
+    let input2 = "a*b=b*a".to_string();
+    
     let lexer1 = Lexer::new(input1);
     let lexer2 = Lexer::new(input2);
-    let parser1 = Parser::new(lexer1);
-    let parser2 = Parser::new(lexer2);
+    let mut parser1 = Parser::new(lexer1);
+    let mut parser2 = Parser::new(lexer2);
+    let node1 = match parser1.parse_equality(){
+        Ok(node) =>{node 
+            
+
+
+        }
+        Err(e)=>{
+        
+        Node::Number(0)
+
+    }};
+    let node2 = match parser2.parse_equality(){
+        Ok(node) =>{node 
+            
+
+
+        }
+        Err(e)=>{
+        Node::Number(0)
+        }
+
+    };
+        let term = Rewrite{term: node1.clone(), expression: node2.clone()};
+        println!("By the law \"{}\", \"{}\" => \"\"{}\"", node2.to_string(), node1.to_string(), term.rewrite().to_string());
     
-    for (i, expr_str) in expressions.into_iter().enumerate() {
+
+    let rewrite_examples = vec![
+        // Example 1: Identity for Addition (x + 0 = x)
+        ("a + 0", "x + 0 = x"),
+        // Example 2: Commutativity of Multiplication (a * b = b * a)
+        ("3 * x", "a * b = b * a"),
+        // Example 3: Distributivity (a * (b + c) = (a * b) + (a * c))
+        ("x * (y + z)", "a * (b + c) = (a * b) + (a * c)"),
+        // Example 4: Nested Application (2 * (x + 0))
+        ("2 * (x + 0)", "y + 0 = y"), // Should transform 2 * (x + 0) to 2 * x
+        // Example 5: Rule Not Applicable (no match)
+        ("a + b", "x * 0 = 0"),
+        // Example 6: More Complex Distributivity ( (a + b) * c = (a * c) + (b * c) )
+        ("(x + y) * z", "(a + b) * c = (a * c) + (b * c)"),
+        // Example 7: Double Application (e.g., identity twice)
+        ("(x + 0) + 0", "a + 0 = a"), // Should apply twice
+        // Example 8: Another Commutativity (a + b = b + a)
+        ("3 + x", "a + b = b + a"),
+        // Example 9: Zero Multiplication (x * 0 = 0)
+        ("y * 0", "x * 0 = 0"),
+        // Example 10: Complex expression with multiple potential matches (only one applies per pass)
+        ("(a + 0) * (b + 0)", "x + 0 = x"), // Should simplify both sides
+    ];
+
+    for (i, (term_str, rule_str)) in rewrite_examples.into_iter().enumerate() {
+        println!("--- Rewriting Example {} ---", i + 1);
+
+        // Parse the term (expression to be rewritten)
+        let mut term_parser = Parser::new(Lexer::new(term_str.to_string()));
+        let term_node = match term_parser.parse_equality() { // Use parse_equality
+            Ok(node) => node,
+            Err(e) => {
+                eprintln!("Error parsing term \"{}\": {:?}", term_str, e);
+                continue;
+            }
+        };
+
+        // Parse the rule (LHS = RHS)
+        let mut rule_parser = Parser::new(Lexer::new(rule_str.to_string()));
+        let rule_node = match rule_parser.parse_equality() { // Use parse_equality
+            Ok(node) => node,
+            Err(e) => {
+                eprintln!("Error parsing rule \"{}\": {:?}", rule_str, e);
+                continue;
+            }
+        };
+
+        // Create the Rewrite instance
+        let rewrite_instance = Rewrite { term: term_node.clone(), expression: rule_node.clone() };
+
+        // Perform the rewrite
+        let rewritten_term = rewrite_instance.rewrite();
+
+        // Print the result
+        println!("  By the law \"{}\", \"{}\" => \"{}\"",
+                 rule_node.to_string(),
+                 term_node.to_string(),
+                 rewritten_term.to_string());
+        println!(""); // Add a newline for spacing
+    }
+}
+    /*for (i, expr_str) in expressions.into_iter().enumerate() {
         println!("\n--- Parsing Expression {} ---", i + 1);
         println!("Input: \"{}\"", expr_str);
 
@@ -54,4 +142,4 @@ fn main() {
             }
         }
     }
-}
+}*/
