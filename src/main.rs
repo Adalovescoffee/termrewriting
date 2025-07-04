@@ -5,7 +5,7 @@ use lexer::Lexer;
 use parser::{Parser, Node, ParserError}; // Import what you need from parser
 use rewriterule::{};
 
-use crate::rewriterule::Rewrite;
+use crate::rewriterule::Term;
 fn main() {
     // Test expressions
     let expressions = vec![ 
@@ -56,8 +56,8 @@ fn main() {
         }
 
     };
-        let term = Rewrite{term: node1.clone(), expression: node2.clone()};
-        println!("By the law \"{}\", \"{}\" => \"\"{}\"", node2.to_string(), node1.to_string(), term.rewrite().to_string());
+        let term = Term{term: node1.clone()};
+        println!("By the law \"{}\", \"{}\" => \"\"{}\"", node2.to_string(), node1.to_string(), term.rewriteby(node2).to_string());
     
 
     let rewrite_examples = vec![
@@ -95,7 +95,7 @@ fn main() {
                 continue;
             }
         };
-
+        
         // Parse the rule (LHS = RHS)
         let mut rule_parser = Parser::new(Lexer::new(rule_str.to_string()));
         let rule_node = match rule_parser.parse_equality() { // Use parse_equality
@@ -105,16 +105,16 @@ fn main() {
                 continue;
             }
         };
-
+        let a = rule_node.to_string();
         // Create the Rewrite instance
-        let rewrite_instance = Rewrite { term: term_node.clone(), expression: rule_node.clone() };
+        let rewrite_instance = Term { term: term_node.clone()};
 
         // Perform the rewrite
-        let rewritten_term = rewrite_instance.rewrite();
+        let rewritten_term = rewrite_instance.rewriteby(rule_node);
 
         // Print the result
         println!("  By the law \"{}\", \"{}\" => \"{}\"",
-                 rule_node.to_string(),
+                 a,
                  term_node.to_string(),
                  rewritten_term.to_string());
         println!(""); // Add a newline for spacing

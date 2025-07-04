@@ -2,6 +2,7 @@ use std::any::Any;
 use std::fmt;
 use crate::lexer::{Lexer,TokenType};
 #[derive(PartialEq,Debug,Clone)]
+
 pub enum Node{
     Number(i64),
     Variable(char),
