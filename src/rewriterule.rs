@@ -2,14 +2,59 @@ use std::collections::HashMap;
 use std::vec;
 use crate::lexer::Lexer;
 use crate::parser::{Parser, Node, ParserError, Operator};
-
+//#[derive(PartialEq, Eq)]
 pub struct Term {
     pub term:Node,
     
 
 
 }
+/*impl PartialOrd for Term {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    
+        
+    }
+
+
+        
+    
+
+
+
+}*/
+
+
 impl Term{     
+//gives the number of nodes on the left 
+// example : 
+//                +
+//              /  \
+//             *    2
+//            / \ 
+//           a  b
+// would have size 3 :D 
+fn complexitysize(&self)-> i32 {
+let size = 0; 
+    fn rec(node:&Node,number:i32)->i32{
+            match node {
+                Node::Number(_) => {number + 1}
+                Node::Variable(_) =>{number +1}
+                Node::BinaryOp(lhs,_ ,rhs ) =>{
+                    rec(lhs,number +1) 
+
+
+                }
+
+
+            }
+
+    
+
+    }
+
+    return rec(&self.term,size) 
+}
+
 pub fn rewriteby(&self, law:Node)-> Node{
     let (elhs,erhs) = match equalitysides(law){
         Some((lhs_node, rhs_node)) =>(lhs_node,rhs_node),
@@ -46,6 +91,10 @@ pub fn rewriteby(&self, law:Node)-> Node{
 
 
 }
+
+
+
+
 
 // this fct obviously turns a node into a string 
 
