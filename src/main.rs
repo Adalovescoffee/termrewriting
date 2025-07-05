@@ -1,11 +1,11 @@
 mod lexer;
 mod parser;
-mod rewriterule;
+mod term;
 use lexer::Lexer;
 use parser::{Parser, Node}; // Import what you need from parser
 
 
-use crate::rewriterule::Term;
+use crate::term::Term;
 fn main() {
     // Test expressions
     /*let expressions = vec![ 

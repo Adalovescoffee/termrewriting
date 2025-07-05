@@ -7,6 +7,7 @@ An experimental library to learn about term rewriting system with goal to implem
 - [x] terms 
 - [x] parser implementation
 - [x] apply axioms/rewrite rules on terms 
+- [ ] order of complexity 
 - [ ] find critical terms 
 - [ ] superposition 
 - [ ] ... 
