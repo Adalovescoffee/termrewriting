@@ -1,8 +1,7 @@
-use std::any::Any;
+//use std::any::Any;
 use std::fmt;
 use crate::lexer::{Lexer,TokenType};
 #[derive(PartialEq,Debug,Clone)]
-
 pub enum Node{
     Number(i64),
     Variable(char),
@@ -24,8 +23,8 @@ impl Node{
 
     
   }
-  pub fn get_char(&self) -> Option<char>{
-    match(self){
+  pub fn _get_char(&self) -> Option<char>{
+    match self{
         Node::Variable(s)=>Some(*s) ,
         
         _ =>None,
@@ -35,7 +34,7 @@ impl Node{
 
   }
  pub fn get_number(&self) -> Option<i64>{
-    match(self){
+    match self{
         Node::Number(s)=>Some(*s),
         _ =>None,
 
@@ -48,10 +47,8 @@ impl Node{
 #[derive(Debug, PartialEq)]
 pub enum ParserError {
     UnexpectedToken { expected: TokenType, found: TokenType, position: usize },
-    ExpectedNumber { found: TokenType, position: usize },
-    ExpectedVariable { found: TokenType, position: usize },
-    SyntaxError(String),
-    LexerError(String), // Placeholder if lexer errors need to be propagated
+    
+    _LexerError(String), // Placeholder if lexer errors need to be propagated
 }
 #[derive(Debug,PartialEq,Clone,Copy)]
 pub enum Operator{
@@ -88,7 +85,7 @@ impl Parser {
     fn current_token_is(&self, token_type: TokenType) -> bool {
         self.current_token == token_type
     }
-    fn peek_token_is(&self, token_type: TokenType) -> bool {
+    fn _peek_token_is(&self, token_type: TokenType) -> bool {
         self.peek_token == token_type
     }
     fn expect_and_advance(&mut self, expected_type: TokenType) -> Result<(), ParserError> {
@@ -100,7 +97,7 @@ impl Parser {
             Err(ParserError::UnexpectedToken {
                 expected: expected_type,
                 found: self.current_token.clone(),
-                position: 0, // TODO: Get position from lexer
+                position: self.lexer.position, // TODO: Get position from lexer
             })
         }
 
@@ -144,7 +141,7 @@ impl Parser {
     // for * / and stuff inside () 
     // parser.rs
 pub fn parse_equality(&mut self) -> Result<Node, ParserError> {
-    let mut lhs = self.parse_term()?;
+    let lhs = self.parse_term()?;
     if self.current_token_is(TokenType::Assign){
         
         self.expect_and_advance(TokenType::Assign)?;
@@ -221,7 +218,7 @@ impl fmt::Display for Operator {
 // Helper to calculate the displayed width of a string.
 // For simplicity, assumes ASCII characters (each char is 1 unit wide).
 // For full Unicode, this would need to use a unicode-aware width crate.
-fn string_display_width(s: &str) -> usize {
+fn _string_display_width(s: &str) -> usize {
     s.chars().count()
 }
 

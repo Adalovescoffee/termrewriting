@@ -2,13 +2,13 @@ mod lexer;
 mod parser;
 mod rewriterule;
 use lexer::Lexer;
-use parser::{Parser, Node, ParserError}; // Import what you need from parser
-use rewriterule::{};
+use parser::{Parser, Node}; // Import what you need from parser
+
 
 use crate::rewriterule::Term;
 fn main() {
     // Test expressions
-    let expressions = vec![ 
+    /*let expressions = vec![ 
         "1 + 2 * 3",
         "5 - x / y",
         "(2 + 3) * 4",
@@ -27,6 +27,7 @@ fn main() {
         "3 * (4 + 5",// Error case: missing parenthesis
         "# invalid", // Error case: illegal character
     ];
+    */
     let input1 = "(2*3)+4".to_string();
     let input2 = "a*b=b*a".to_string();
     
@@ -41,7 +42,7 @@ fn main() {
 
         }
         Err(e)=>{
-        
+        eprintln!("Error parsing term \"{}\": {:?}", "(2*3)+4", e);
         Node::Number(0)
 
     }};
@@ -52,6 +53,7 @@ fn main() {
 
         }
         Err(e)=>{
+        eprintln!("Error parsing term \"{}\": {:?}", "a*b = b*a", e);
         Node::Number(0)
         }
 

@@ -16,7 +16,7 @@ pub enum TokenType {
 
 pub struct Lexer {
     input: String,
-    position: usize,      
+    pub position: usize,      
     read_position: usize, 
     ch: char,            
 }
@@ -109,7 +109,7 @@ impl Lexer {
             },
 
            
-            c @ '0'..='9' => {
+             '0'..='9' => {
                
                 let num_str = self.read_number();
                 TokenType::Integer(num_str.parse::<i64>().expect("Failed to parse number"))

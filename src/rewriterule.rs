@@ -1,7 +1,7 @@
 use std::collections::HashMap;
-use std::vec;
-use crate::lexer::Lexer;
-use crate::parser::{Parser, Node, ParserError, Operator};
+//use std::vec;
+//use crate::lexer::Lexer;
+use crate::parser::{ Node, Operator};
 //#[derive(PartialEq, Eq)]
 pub struct Term {
     pub term:Node,
@@ -33,13 +33,13 @@ impl Term{
 //            / \ 
 //           a  b
 // would have size 3 :D 
-fn complexitysize(&self)-> i32 {
+fn _complexitysize(&self)-> i32 {
 let size = 0; 
     fn rec(node:&Node,number:i32)->i32{
             match node {
                 Node::Number(_) => {number + 1}
                 Node::Variable(_) =>{number +1}
-                Node::BinaryOp(lhs,_ ,rhs ) =>{
+                Node::BinaryOp(lhs,_ ,_rhs ) =>{
                     rec(lhs,number +1) 
 
 
