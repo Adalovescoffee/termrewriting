@@ -111,79 +111,83 @@ impl Parser {
     
     }
     
-    fn parse_factor(&mut self)->Result<Node, ParserError>{
+    fn parse_factor(&mut self, size:i16)->Result<(Node,i16), ParserError>{
     let node = match self.current_token{
         TokenType::Integer(value)=>{
             self.advance();
-            Ok(Node::Number(value  ))
+            Ok((Node::Number(value  ),size))
 
         },
         
         TokenType::Variable(value)=>{
             self.advance();
-            Ok(Node::Variable(value))
+            Ok((Node::Variable(value),size))
         },
         
         TokenType::LParen =>{
             self.expect_and_advance(TokenType::LParen)?;
-            let node = self.parse_term()?;
+            let node = self.parse_term(size)?;
             self.expect_and_advance(TokenType::RParen)?;
             Ok(node)
         },
         _ => Err(ParserError::UnexpectedToken {
             expected: TokenType::Integer(42), // 
             found: self.current_token.clone(),
-            position: 0, // to be fixed
+            position: self.lexer.position, // to be fixed
         }),
     };
     node
     }
     // for * / and stuff inside () 
     // parser.rs
-pub fn parse_equality(&mut self) -> Result<Node, ParserError> {
-    let lhs = self.parse_term()?;
+pub fn parse_equality(&mut self,size:i16) -> Result<(Node,i16), ParserError> {
+    let (mut lhs,size )= self.parse_term(size)?;
     if self.current_token_is(TokenType::Assign){
         
         self.expect_and_advance(TokenType::Assign)?;
-        let rhs = self.parse_equality()?; 
-        Ok(Node::BinaryOp(Box::new(lhs),Operator::Assign, Box::new(rhs)))
+        let (rhs,size) = self.parse_equality(size)?; 
+        Ok((Node::BinaryOp(Box::new(lhs),Operator::Assign, Box::new(rhs)),size))
 
     }
     else{
 
-        Ok(lhs)
+        Ok((lhs,size))
     }
 
 }
-fn parse_tuah(&mut self) -> Result<Node, ParserError> {
-    let mut lhs = self.parse_factor()?;
+fn parse_tuah(&mut self,mut size:i16 ) -> Result<(Node,i16), ParserError> {
+    let (mut lhs,mut size) = self.parse_factor(size)?;
     
     loop {
         match self.current_token {
             
             TokenType::Multiply => {
                 self.advance(); // Consume '*'
-            let rhs = self.parse_factor()?;
+                size = size+1;
+            let (rhs,size) = self.parse_factor(size)?;
                 lhs = Node::BinaryOp(Box::new(lhs), Operator::Multiply, Box::new(rhs));
             },
             TokenType::Divide => {
                 self.advance(); // Consume '/'
-                let rhs = self.parse_factor()?;
+                size = size +1;
+                let (rhs, size) = self.parse_factor(size)?;
                 lhs = Node::BinaryOp(Box::new(lhs), Operator::Divide, Box::new(rhs));
             },
             TokenType::Integer(_) | TokenType::Variable(_) | TokenType::LParen => {
                 // Implicit multiplication
-                let rhs = self.parse_factor()?;
+                size = size +1; 
+                let (rhs, size ) = self.parse_factor(size)?;
                 lhs = Node::BinaryOp(Box::new(lhs), Operator::Multiply, Box::new(rhs));
             },
             _ => break,
         }
+        
     }
     
-    Ok(lhs)
+    Ok((lhs,size))
 }
-    pub fn parse_term(&mut self) -> Result<Node, ParserError> {
-        let mut lhs = self.parse_tuah()?; 
+    pub fn parse_term(&mut self,mut size:i16) -> Result<(Node,i16), ParserError> {
+        let (mut lhs,mut size) = self.parse_tuah(size)?; 
     
         while matches!(self.current_token, TokenType::Plus | TokenType::Minus) {
             let operator = match self.current_token {
@@ -193,11 +197,12 @@ fn parse_tuah(&mut self) -> Result<Node, ParserError> {
             };
     
             self.advance(); // consume + or -
-            let rhs = self.parse_tuah()?;
+            size = size+1; 
+            let (rhs,size) = self.parse_tuah(size)?;
             lhs = Node::BinaryOp(Box::new(lhs), operator, Box::new(rhs));
         }
     
-        Ok(lhs)
+        Ok((lhs,size))
     }
     
     

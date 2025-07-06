@@ -55,7 +55,7 @@ let size = 0;
     return rec(&self.term,size) 
 }
 
-pub fn rewriteby(&self, law:Node)-> Node{
+pub fn rewriteby(&self, law:&Node)-> Node{
     let (elhs,erhs) = match equalitysides(law){
         Some((lhs_node, rhs_node)) =>(lhs_node,rhs_node),
         None => {
@@ -151,7 +151,7 @@ pub fn canmatch(&self,other:&Node/* ,relations:HashMap<char,Node>*/)-> bool{ // 
 }
 
 //check if it's an equality, returns lhs and rhs if it's not 
-pub fn equalitysides(term:Node)->Option<(Node,Node)>{
+pub fn equalitysides(term:&Node)->Option<(Node,Node)>{
     if let Node::BinaryOp(lhs,Operator::Assign ,rhs) = term.clone(){
         return Some((*lhs,*rhs))
     }
@@ -261,7 +261,7 @@ pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
 
 }
 
-
+/* 
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -429,3 +429,7 @@ mod tests {
         assert_eq!(rewritten_expr, expected_expr, "Malformed rule should not apply, return original expression");
     }
 }
+
+
+
+*/

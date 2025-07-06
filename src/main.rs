@@ -28,14 +28,15 @@ fn main() {
         "# invalid", // Error case: illegal character
     ];
     */
-    let input1 = "(2*3)+4".to_string();
+    let input1 = "2-(2*3)+4+2 = 2*3".to_string();
     let input2 = "a*b=b*a".to_string();
     
     let lexer1 = Lexer::new(input1);
     let lexer2 = Lexer::new(input2);
     let mut parser1 = Parser::new(lexer1);
     let mut parser2 = Parser::new(lexer2);
-    let node1 = match parser1.parse_equality(){
+    let size:i16 = 0; 
+    let node1 = match parser1.parse_equality(size){
         Ok(node) =>{node 
             
 
@@ -43,10 +44,11 @@ fn main() {
         }
         Err(e)=>{
         eprintln!("Error parsing term \"{}\": {:?}", "(2*3)+4", e);
-        Node::Number(0)
+        (Node::Number(0),size)
 
     }};
-    let node2 = match parser2.parse_equality(){
+    println!("this term \"{}\" has \"{}\" term",node1.0,node1.1.to_string());
+    let node2 = match parser2.parse_equality(size){
         Ok(node) =>{node 
             
 
@@ -54,15 +56,16 @@ fn main() {
         }
         Err(e)=>{
         eprintln!("Error parsing term \"{}\": {:?}", "a*b = b*a", e);
-        Node::Number(0)
+        (Node::Number(0),size)
         }
 
     };
-        let term = Term{term: node1.clone()};
-        println!("By the law \"{}\", \"{}\" => \"\"{}\"", node2.to_string(), node1.to_string(), term.rewriteby(node2).to_string());
+       
+        let term = Term{term: node1.0 };    
+        println!("By the law \"{}\", \"{}\" => \"{}\"", node2.0, term.term, term.rewriteby(&node2.0).to_string());
     
 
-    let rewrite_examples = vec![
+    let _rewrite_examples = vec![
         // Example 1: Identity for Addition (x + 0 = x)
         ("a + 0", "x + 0 = x"),
         // Example 2: Commutativity of Multiplication (a * b = b * a)
@@ -84,7 +87,8 @@ fn main() {
         // Example 10: Complex expression with multiple potential matches (only one applies per pass)
         ("(a + 0) * (b + 0)", "x + 0 = x"), // Should simplify both sides
     ];
-
+}
+   /* 
     for (i, (term_str, rule_str)) in rewrite_examples.into_iter().enumerate() {
         println!("--- Rewriting Example {} ---", i + 1);
 
@@ -144,4 +148,5 @@ fn main() {
             }
         }
     }
-}*/
+    
+}*/ */
