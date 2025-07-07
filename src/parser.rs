@@ -112,31 +112,31 @@ impl Parser {
     
     }
     
-    fn parse_factor(&mut self, mut size:i16)->Result<(Node,i16), ParserError>{
+    fn parse_factor(&mut self)->Result<(Node,i16), ParserError>{
     let node = match self.current_token{
         TokenType::Integer(value)=>{
             self.advance();
-            //size = size+1;
-             println!("You are currently in parse_factor integer,\"{:?}\",size is :\"{}\"",self.current_token,size);
-            Ok((Node::Number(value  ),size))
+            //opsnumber = opsnumber+1;
+             println!("You are currently in parse_factor integer,\"{:?}\",opsnumber is :\"{}\"",self.current_token,0);
+            Ok((Node::Number(value  ),0))
 
         },
         
         TokenType::Variable(value)=>{
             self.advance();
-            //size = size +1;
-             println!("You are currently in parse_factor variable,\"{:?}\",size is :\"{}\"",self.current_token,size);
-            Ok((Node::Variable(value),size))
+            //opsnumber = opsnumber +1;
+             println!("You are currently in parse_factor variable,\"{:?}\",opsnumber is :\"{}\"",self.current_token,0);
+            Ok((Node::Variable(value),0))
         },
         
         TokenType::LParen =>{
             self.expect_and_advance(TokenType::LParen)?;
-            //size = size +1;
-             println!("You are currently in parse_factor lparen,\"{:?}\",size is :\"{}\"",self.current_token,size);
-            let (node,size) = self.parse_term(size)?;
+            //opsnumber = opsnumber +1;
+             println!("You are currently in parse_factor lparen,\"{:?}\",opsnumber is :\"{}\"",self.current_token,0);
+            let (node,opsnumber) = self.parse_term()?;
             self.expect_and_advance(TokenType::RParen)?;
-             println!("You are currently in parse_factor rparen,\"{:?}\",size is :\"{}\"",self.current_token,size);
-            Ok((node,size))
+             println!("You are currently in parse_factor rparen,\"{:?}\",opsnumber is :\"{}\"",self.current_token,0);
+            Ok((node,opsnumber))
         },
         _ => Err(ParserError::UnexpectedToken {
             expected: TokenType::Integer(42), // 
@@ -148,58 +148,62 @@ impl Parser {
     }
     // for * / and stuff inside () 
     // parser.rs
-pub fn parse_equality(&mut self,mut size:i16) -> Result<(Node,i16), ParserError> {
-    let (mut lhs,mut size )= self.parse_term(size)?;
+pub fn parse_equality(&mut self) -> Result<(Node,i16), ParserError> {
+    let (mut lhs,mut opsnumber )= self.parse_term()?;
     if self.current_token_is(TokenType::Assign){
         
         self.expect_and_advance(TokenType::Assign)?;
-        let (rhs,size) = self.parse_equality(size)?; 
-        Ok((Node::BinaryOp(Box::new(lhs),Operator::Assign, Box::new(rhs)),size))
+        let (rhs,rhsops) = self.parse_equality()?; 
+        opsnumber = opsnumber + rhsops;
+        Ok((Node::BinaryOp(Box::new(lhs),Operator::Assign, Box::new(rhs)),opsnumber))
 
     }
     else{
 
-        Ok((lhs,size))
+        Ok((lhs,opsnumber))
     }
 
 }
-fn parse_tuah(&mut self,mut size:i16 ) -> Result<(Node,i16), ParserError> {
-    let (mut lhs,mut size) = self.parse_factor(size)?;// in the case "c*(a*b) this is c "
+fn parse_tuah(&mut self ) -> Result<(Node,i16), ParserError> {
+    let (mut lhs,mut opsnumber) = self.parse_factor()?;// in the case "c*(a*b) this is c "
     
     loop {
         match self.current_token {
             
             TokenType::Multiply => {
                 self.advance(); // Consume '*'
-                size = size+1; // for the example size here is now equal to 1 
-                let (rhs,size) = self.parse_factor(size)?; // (rhs,size) = 
+                opsnumber = opsnumber   +1; // for the example opsnumber here is now equal to 1 
+                let (rhs,rhsops) = self.parse_factor()?; // (rhs,opsnumber) = 
+                opsnumber = opsnumber + rhsops; 
                 lhs = Node::BinaryOp(Box::new(lhs), Operator::Multiply, Box::new(rhs));
-                println!("You are currently in parse_tuah multiply,\"{:?}\",size is :\"{}\"",self.current_token,size);
+                println!("You are currently in parse_tuah multiply,\"{:?}\",opsnumber is :\"{}\"",self.current_token,opsnumber);
             },
             TokenType::Divide => {
                 self.advance(); // Consume '/'
-                size = size +1;
-                let (rhs, size) = self.parse_factor(size)?;
+                opsnumber = opsnumber +1;
+                let (rhs, rhsops) = self.parse_factor()?;
+                opsnumber = opsnumber + rhsops; 
                 lhs = Node::BinaryOp(Box::new(lhs), Operator::Divide, Box::new(rhs));
-                println!("You are currently in parse_tuah divide,\"{:?}\",size is :\"{}\"",self.current_token,size);
+                println!("You are currently in parse_tuah divide,\"{:?}\",opsnumber is :\"{}\"",self.current_token,opsnumber);
             },
             TokenType::Integer(_) | TokenType::Variable(_) | TokenType::LParen => {
                 // Implicit multiplication
-                size = size +1; 
-                let (rhs, size ) = self.parse_factor(size)?;
+                opsnumber = opsnumber +1; 
+                let (rhs, rhsops ) = self.parse_factor()?;
                 lhs = Node::BinaryOp(Box::new(lhs), Operator::Multiply, Box::new(rhs));
-                 println!("You are currently in parse_tuah implicit mult,\"{:?}\",size is :\"{}\"",self.current_token,size);
+                opsnumber = opsnumber + rhsops; 
+                 println!("You are currently in parse_tuah implicit mult,\"{:?}\",opsnumber is :\"{}\"",self.current_token,opsnumber);
             },
             _ => break,
         }
         
     }
     
-    Ok((lhs,size))
+    Ok((lhs,opsnumber))
 }
-    pub fn parse_term(&mut self,mut size:i16) -> Result<(Node,i16), ParserError> {
-        let (mut lhs,mut size) = self.parse_tuah(size)?; 
-    
+    pub fn parse_term(&mut self) -> Result<(Node,i16), ParserError> {
+        let (mut lhs,mut opsnumber) = self.parse_tuah()?; 
+       println!("what's going on term,\"{:?}\", opsnumber : \"{}\"",self.current_token,opsnumber);
         while matches!(self.current_token, TokenType::Plus | TokenType::Minus) {
             let operator = match self.current_token {
                 TokenType::Plus => Operator::Add,
@@ -208,17 +212,18 @@ fn parse_tuah(&mut self,mut size:i16 ) -> Result<(Node,i16), ParserError> {
             };
     
             self.advance(); // consume + or -
-             println!("You are currently in parse_term bf advance,\"{:?}\",size is :\"{}\"",self.current_token,size);
-            size = size+1; 
-            let (rhs,size) = self.parse_tuah(size)?;
-             println!("You are currently in parse_term before tuah,\"{:?}\",size is :\"{}\"",self.current_token,size);
+             println!("You are currently in parse_term bf advance,\"{:?}\",opsnumber is :\"{}\"",self.current_token,opsnumber);
+            opsnumber = opsnumber+1; 
+            let (rhs,rhsops) = self.parse_tuah()?;
+            opsnumber = opsnumber + rhsops;
+             println!("You are currently in parse_term before tuah,\"{:?}\",opsnumber is :\"{}\"",self.current_token,opsnumber);
             lhs = Node::BinaryOp(Box::new(lhs), operator, Box::new(rhs));
              
         
-            println!("You are currently in parse_term lhs def,\"{:?}\",size is :\"{}\"",self.current_token,size);
+            println!("You are currently in parse_term lhs def,\"{:?}\",opsnumber is :\"{}\"",self.current_token,opsnumber);
         }
-         println!("You are currently in parse_term endloop,\"{:?}\",size is :\"{}\"",self.current_token,size);
-        Ok((lhs,size))
+         println!("You are currently in parse_term endloop,\"{:?}\",opsnumber is :\"{}\"",self.current_token,opsnumber);
+        Ok((lhs,opsnumber))
     }
     
     

@@ -28,7 +28,7 @@ fn main() {
         "# invalid", // Error case: illegal character
     ];
     */
-    let input1 = "c*((a+b)*c)".to_string();
+    let input1 = "c*(a+b)".to_string();
     let input2 = "a*b=b*a".to_string();
 
     let lexer1 = Lexer::new(input1);
@@ -36,7 +36,7 @@ fn main() {
     let mut parser1 = Parser::new(lexer1);
     let mut parser2 = Parser::new(lexer2);
     let size:i16 = 0; 
-    let node1 = match parser1.parse_equality(size){
+    let node1 = match parser1.parse_equality(){
         Ok(node) =>{node 
             
 
@@ -48,7 +48,7 @@ fn main() {
 
     }};
     println!("this term \"{}\" has \"{}\" operation",node1.0,node1.1.to_string());
-    let node2 = match parser2.parse_equality(size){
+    let node2 = match parser2.parse_equality(){
         Ok(node) =>{node 
             
 
