@@ -51,7 +51,7 @@ fn main() {
      
     println!("this term \"{}\" has \"{}\" operation",node1.0.0,node1.0.1.to_string());
     let node2 = match parser2.parse_equality(){
-        Ok(node) =>{node 
+        Ok(((n1,size1),(n2,size2))) =>{((n1,size1),(n2,size2) )
             
 
 
@@ -64,7 +64,7 @@ fn main() {
     };
        
         let term = Term{term: node1.0.0,size:node1.0.1 };    
-        println!("By the law \"{}\", \"{}\" => \"{}\"", node2.0.0, term.term, term.rewriteby(&node2).to_string());
+        println!("By the law \"{}\", \"{}\" => \"{}\"", node2.0.0, term.term, term.rewriteby(((&node2.0.0,node2.0.1),(&node2.1.0,node2.1.1))).to_string());
     
 
     let _rewrite_examples = vec![
