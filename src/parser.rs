@@ -9,6 +9,8 @@ pub enum Node{
     BinaryOp(Box<Node>,Operator,Box<Node>)
 
 }
+
+
 impl Node{
   pub fn same_type(&self, other:&Node) -> bool { // i think actually that this is useless but i might be wrong
     match (self, other) {
@@ -147,23 +149,25 @@ impl Parser {
     node
     }
     // for * / and stuff inside () 
-    // parser.rs
-pub fn parse_equality(&mut self) -> Result<(Node,i16), ParserError> {
-    let (mut lhs,mut opsnumber )= self.parse_term()?;
+  
+
+pub fn parse_equality(&mut self) -> Result<((Node,i16),(Node,i16)),ParserError> {
+    let (mut lhs,mut lhsops )= self.parse_term()?;
     if self.current_token_is(TokenType::Assign){
         
         self.expect_and_advance(TokenType::Assign)?;
-        let (rhs,rhsops) = self.parse_equality()?; 
-        opsnumber = opsnumber + rhsops;
-        Ok((Node::BinaryOp(Box::new(lhs),Operator::Assign, Box::new(rhs)),opsnumber))
+        let (rhs,rhsops) = self.parse_term()?; 
+        //opsnumber = opsnumber + rhsops;
+        Ok(((lhs,lhsops),(rhs,rhsops)))
 
     }
     else{
 
-        Ok((lhs,opsnumber))
+        Ok(((lhs.clone(),lhsops),(lhs,lhsops))) // cloning here :c 
     }
+    
+}   
 
-}
 fn parse_tuah(&mut self ) -> Result<(Node,i16), ParserError> {
     let (mut lhs,mut opsnumber) = self.parse_factor()?;// in the case "c*(a*b) this is c "
     

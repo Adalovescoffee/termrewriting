@@ -44,10 +44,12 @@ fn main() {
         }
         Err(e)=>{
         eprintln!("Error parsing term \"{}\": {:?}", "(2*3)+4", e);
-        (Node::Number(0),size)
+        ((Node::Variable('f'),0),(Node::Variable('f'),0))
 
     }};
-    println!("this term \"{}\" has \"{}\" operation",node1.0,node1.1.to_string());
+    
+     
+    println!("this term \"{}\" has \"{}\" operation",node1.0.0,node1.0.1.to_string());
     let node2 = match parser2.parse_equality(){
         Ok(node) =>{node 
             
@@ -56,13 +58,13 @@ fn main() {
         }
         Err(e)=>{
         eprintln!("Error parsing term \"{}\": {:?}", "a*b = b*a", e);
-        (Node::Number(0),size)
+       ((Node::Variable('f'),size),(Node::Variable('f'),size))
         }
 
     };
        
-        let term = Term{term: node1.0 };    
-        println!("By the law \"{}\", \"{}\" => \"{}\"", node2.0, term.term, term.rewriteby(&node2.0).to_string());
+        let term = Term{term: node1.0.0,size:node1.0.1 };    
+        println!("By the law \"{}\", \"{}\" => \"{}\"", node2.0.0, term.term, term.rewriteby(&node2).to_string());
     
 
     let _rewrite_examples = vec![

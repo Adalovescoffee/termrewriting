@@ -5,6 +5,7 @@ use crate::parser::{ Node, Operator};
 //#[derive(PartialEq, Eq)]
 pub struct Term {
     pub term:Node,
+    pub size:i16,
     
 
 
@@ -33,8 +34,8 @@ impl Term{
 //            / \ 
 //           a  b
 // would have size 3 :D 
-fn _complexitysize(&self)-> i32 {
-let size = 0; 
+fn _complexitysize(&self)-> i32 {// this is when number of operations is the same 
+let size = 0    ; 
     fn rec(node:&Node,number:i32)->i32{
             match node {
                 Node::Number(_) => {number + 1}
@@ -54,9 +55,12 @@ let size = 0;
 
     return rec(&self.term,size) 
 }
-
-pub fn rewriteby(&self, law:&Node)-> Node{
-    let (elhs,erhs) = match equalitysides(law){
+// okay here is when things become interesting 
+// ok so we decided self has term + size law has to have some sort of size value inbedded only issue is that size
+// maybe it should be law :((lhs,size),(rhs,size)) 
+//time to change
+pub fn rewriteby(&self, law:((&Node,i16),(&Node,i16)))-> Node{
+    /*let (elhs,erhs) = match equalitysides(law){
         Some((lhs_node, rhs_node)) =>(lhs_node,rhs_node),
         None => {
 
@@ -64,7 +68,10 @@ pub fn rewriteby(&self, law:&Node)-> Node{
             return self.term.clone();
 
         }
-    };
+    };*/
+    let (elhs, erhs) = law;
+    let (lhs_node,lhs_size) = elhs;
+    let (rhs_node,rhs_size) = erhs;
     fn rec(targetnode:&Node,rule_pattern:&Node,subst_pattern:&Node)->Node{
         if let Some(relations) = matchandassigns(rule_pattern,targetnode ){
             return nodesubst(subst_pattern,&relations);
@@ -87,7 +94,7 @@ pub fn rewriteby(&self, law:&Node)-> Node{
 
     }
 
-    rec(&self.term,&elhs,&erhs)
+    rec(&self.term,&lhs_node,&rhs_node)
 
 
 }
@@ -151,7 +158,7 @@ pub fn canmatch(&self,other:&Node/* ,relations:HashMap<char,Node>*/)-> bool{ // 
 }
 
 //check if it's an equality, returns lhs and rhs if it's not 
-pub fn equalitysides(term:&Node)->Option<(Node,Node)>{
+pub fn equalitysides(term:&Node)->Option<(Node,(Node))>{
     if let Node::BinaryOp(lhs,Operator::Assign ,rhs) = term.clone(){
         return Some((*lhs,*rhs))
     }
