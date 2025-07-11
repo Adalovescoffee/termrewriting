@@ -59,7 +59,7 @@ let size = 0    ;
 // ok so we decided self has term + size law has to have some sort of size value inbedded only issue is that size
 // maybe it should be law :((lhs,size),(rhs,size)) 
 //time to change
-pub fn rewriteby(&self, law:((&Node,i16),(&Node,i16)))-> Node{
+pub fn rewriteby(&self, law:((&Node,i16),(&Node,i16)))-> (Node,i16){
     /*let (elhs,erhs) = match equalitysides(law){
         Some((lhs_node, rhs_node)) =>(lhs_node,rhs_node),
         None => {
@@ -72,7 +72,7 @@ pub fn rewriteby(&self, law:((&Node,i16),(&Node,i16)))-> Node{
     let (elhs, erhs) = law;
     let (lhs_node,lhs_size) = elhs;
     let (rhs_node,rhs_size) = erhs;
-    fn rec(targetnode:&Node,rule_pattern:&Node,subst_pattern:&Node)->Node{
+    fn rec(targetnode:&Node,rule_pattern:&Node,subst_pattern:&Node)->(Node,i16){
         if let Some(relations) = matchandassigns(rule_pattern,targetnode ){
             return nodesubst(subst_pattern,&relations);
 
@@ -80,15 +80,15 @@ pub fn rewriteby(&self, law:((&Node,i16),(&Node,i16)))-> Node{
         }
         match targetnode{
             Node::BinaryOp(lhs,op,rhs) => {
-                let new_lhs = rec(lhs,rule_pattern,subst_pattern);
-                let new_rhs = rec(rhs,rule_pattern,subst_pattern);
-                Node::BinaryOp(Box::new(new_lhs),*op,Box::new(new_rhs))
+                let (new_lhs,lhsize) = rec(lhs,rule_pattern,subst_pattern);
+                let (new_rhs,rhsize) = rec(rhs,rule_pattern,subst_pattern);
+                (Node::BinaryOp(Box::new(new_lhs),*op,Box::new(new_rhs)),lhsize + rhsize +1) 
 
 
             }
 
-            Node::Number(val) => Node::Number(*val),
-            Node::Variable(c) => Node::Variable(*c),
+            Node::Number(val) => (Node::Number(*val),0),
+            Node::Variable(c) => (Node::Variable(*c),0)
 
         }
 
@@ -169,30 +169,31 @@ pub fn equalitysides(term:&Node)->Option<(Node,(Node))>{
 
 }
 //substitutes a node 
-pub fn nodesubst(snode:&Node,relations:&HashMap<char,Node>)->Node{
+pub fn nodesubst(snode:&Node,relations:&HashMap<char,Node>)->(Node,i16){
+    let nodesize = 0; 
     match snode{
         Node::Number(n) =>{
-
-            Node::Number(*n)
+             
+            (Node::Number(*n),0)
         }
         Node::Variable(c) =>{
             if let Some(mnode) = relations.get(c){
-                mnode.clone()
+                (mnode.clone(),countsize(mnode))
 
 
             }
             else{
 
 
-                Node::Variable(*c)
+                (Node::Variable(*c),0)
             }
 
 
         }
         Node::BinaryOp(lhs,op ,rhs ) => {
-            let new_lhs = nodesubst(lhs,relations); 
-            let new_rhs = nodesubst(rhs, relations);
-            Node::BinaryOp(Box::new(new_lhs),*op,Box::new(new_rhs))
+            let (new_lhs,lhsize) = nodesubst(lhs,relations); 
+            let (new_rhs ,rhsize)= nodesubst(rhs, relations);
+            (Node::BinaryOp(Box::new(new_lhs),*op,Box::new(new_rhs)),lhsize + rhsize +1)
 
 
         }

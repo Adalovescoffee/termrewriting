@@ -28,8 +28,8 @@ fn main() {
         "# invalid", // Error case: illegal character
     ];
     */
-    let input1 = "c*(a+b)".to_string();
-    let input2 = "a*b=b*a".to_string();
+    let input1 = "a +b*1".to_string();
+    let input2 = "a*1=a".to_string();
 
     let lexer1 = Lexer::new(input1);
     let lexer2 = Lexer::new(input2);
@@ -62,9 +62,10 @@ fn main() {
         }
 
     };
-       
+     
         let term = Term{term: node1.0.0,size:node1.0.1 };    
-        println!("By the law \"{}\", \"{}\" => \"{}\"", node2.0.0, term.term, term.rewriteby(((&node2.0.0,node2.0.1),(&node2.1.0,node2.1.1))).to_string());
+        let (rewrittenterm,size) = term.rewriteby(((&node2.0.0,node2.0.1),(&node2.1.0,node2.1.1)));
+        println!("By the law \"{}\", \"{}\" => \"{}\" with size \"{}\"", node2.0.0, term.term, rewrittenterm.to_string(),size.to_string());
     
 
     let _rewrite_examples = vec![
