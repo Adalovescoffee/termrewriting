@@ -100,7 +100,7 @@ pub fn rewriteby(&self, law:((&Node,i16),(&Node,i16)))-> Node{
 }
 
 
-
+}
 
 
 // this fct obviously turns a node into a string 
@@ -155,7 +155,7 @@ pub fn canmatch(&self,other:&Node/* ,relations:HashMap<char,Node>*/)-> bool{ // 
 
 
 
-}
+
 
 //check if it's an equality, returns lhs and rhs if it's not 
 pub fn equalitysides(term:&Node)->Option<(Node,(Node))>{
@@ -201,6 +201,27 @@ pub fn nodesubst(snode:&Node,relations:&HashMap<char,Node>)->Node{
 
 
 }
+// 
+pub fn countsize(node:&Node)->i16{
+    let size:i16 = 0; 
+    match node{
+        Node::Number(_) =>{
+            return 0;
+        }
+        Node::Variable(_)=>{
+            return 0;
+        }
+        Node::BinaryOp(lhs,_ ,rhs ) => {
+            return countsize(lhs) + countsize(rhs) + 1;
+
+        }
+
+
+    }
+
+
+}
+
 // this function matchand binds on a given like node, it doesn't move the node 
 // what i need rn is a function that takes this matchandbinds if it return a failure on a given node in the b 
 pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
@@ -267,6 +288,7 @@ pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
 
 
 }
+  
 
 /* 
 #[cfg(test)]
