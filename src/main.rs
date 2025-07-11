@@ -2,10 +2,12 @@ mod lexer;
 mod parser;
 mod term;
 use lexer::Lexer;
-use parser::{Parser, Node}; // Import what you need from parser
+use parser::{Parser, Node,ParserError}; // Import what you need from parser
 
 
 use crate::term::Term;
+
+
 fn main() {
     // Test expressions
     /*let expressions = vec![ 
@@ -63,12 +65,14 @@ fn main() {
 
     };
      
-        let term = Term{term: node1.0.0,size:node1.0.1 };    
-        let (rewrittenterm,size) = term.rewriteby(((&node2.0.0,node2.0.1),(&node2.1.0,node2.1.1)));
-        println!("By the law \"{}\", \"{}\" => \"{}\" with size \"{}\"", node2.0.0, term.term, rewrittenterm.to_string(),size.to_string());
+        let term1 = Term{term: node1.0.0,size:node1.0.1 };
+          
+        let rewrittenterm = term1.rewriteby(((&node2.0.0,node2.0.1),(&node2.1.0,node2.1.1)));
+        let term2 = Term{term:node2.0.0,size:node2.0.1};  
+        println!("By the law \"{}\", \"{}\" => \"{}\"", term2, term1, rewrittenterm);
     
 
-    let _rewrite_examples = vec![
+    let rewrite_examples = vec![
         // Example 1: Identity for Addition (x + 0 = x)
         ("a + 0", "x + 0 = x"),
         // Example 2: Commutativity of Multiplication (a * b = b * a)
@@ -90,66 +94,47 @@ fn main() {
         // Example 10: Complex expression with multiple potential matches (only one applies per pass)
         ("(a + 0) * (b + 0)", "x + 0 = x"), // Should simplify both sides
     ];
-}
-   /* 
     for (i, (term_str, rule_str)) in rewrite_examples.into_iter().enumerate() {
         println!("--- Rewriting Example {} ---", i + 1);
 
-        // Parse the term (expression to be rewritten)
-        let mut term_parser = Parser::new(Lexer::new(term_str.to_string()));
-        let term_node = match term_parser.parse_equality() { // Use parse_equality
-            Ok(node) => node,
+        
+        let (term_node, term_ops) = match parse_input_to_rule_tuple(term_str) {
+            Ok(((node, ops), _)) => (node, ops), 
             Err(e) => {
                 eprintln!("Error parsing term \"{}\": {:?}", term_str, e);
                 continue;
             }
         };
         
-        // Parse the rule (LHS = RHS)
-        let mut rule_parser = Parser::new(Lexer::new(rule_str.to_string()));
-        let rule_node = match rule_parser.parse_equality() { // Use parse_equality
-            Ok(node) => node,
+        let term_instance = Term { term: term_node.clone(), size: term_ops };
+
+       
+        let (rule_pattern_tuple, rule_subst_tuple) = match parse_input_to_rule_tuple(rule_str) {
+            Ok(rule_tuple) => rule_tuple,
             Err(e) => {
                 eprintln!("Error parsing rule \"{}\": {:?}", rule_str, e);
                 continue;
             }
         };
-        let a = rule_node.to_string();
-        // Create the Rewrite instance
-        let rewrite_instance = Term { term: term_node.clone()};
 
-        // Perform the rewrite
-        let rewritten_term = rewrite_instance.rewriteby(rule_node);
+        let law_for_rewriteby = (
+            (&rule_pattern_tuple.0, rule_pattern_tuple.1), // (&Node, i16) for pattern
+            (&rule_subst_tuple.0, rule_subst_tuple.1),     // (&Node, i16) for substitution
+        );
+        let rewritten_term_instance = term_instance.rewriteby(law_for_rewriteby);
 
-        // Print the result
         println!("  By the law \"{}\", \"{}\" => \"{}\"",
-                 a,
-                 term_node.to_string(),
-                 rewritten_term.to_string());
-        println!(""); // Add a newline for spacing
+                 rule_str,
+                 term_instance, 
+                 rewritten_term_instance); 
+        println!(""); 
     }
 }
-    /*for (i, expr_str) in expressions.into_iter().enumerate() {
-        println!("\n--- Parsing Expression {} ---", i + 1);
-        println!("Input: \"{}\"", expr_str);
-
-        let input = expr_str.to_string();
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-
-        // Attempt to parse the expression
-        // We call parse_expression, as it's the top-level for arithmetic expressions
-        match parser.parse_equality() {
-            Ok(ast) => {
-                
-                println!("Successfully Parsed AST: {:?}", ast);
-                // Here, you would typically evaluate the AST or perform term rewriting
-                // For example: println!("Evaluated result: {}", evaluate_ast(&ast));
-            },
-            Err(e) => {
-                eprintln!("Parsing Error: {:?}", e);
-            }
-        }
-    }
+   
     
-}*/ */
+fn parse_input_to_rule_tuple(input_str: &str) -> Result<((Node, i16), (Node, i16)), ParserError> {
+    let lexer = Lexer::new(input_str.to_string());
+    let mut parser = Parser::new(lexer);
+   
+    parser.parse_equality()
+}
