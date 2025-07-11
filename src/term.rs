@@ -1,13 +1,60 @@
 use core::fmt;
 use std::collections::HashMap;
+use std::cmp::Ordering;
+
 //use std::vec;
 //use crate::lexer::Lexer;
 use crate::parser::{ Node, Operator};
 //#[derive(PartialEq, Eq)]
+
 pub struct Term {
     pub term:Node,
     pub size:i16,
     
+
+
+}
+impl PartialEq for Term {
+    fn eq(&self, other: &Self) -> bool {
+        self.size == other.size && self.complexitysize() == other.complexitysize()
+    }
+}
+impl PartialOrd for Term {
+    fn partial_cmp (&self, other:&Self) ->Option<Ordering> {
+        let size1 = self.size; 
+        let size2 = other.size; 
+        if size1> size2 {
+
+           return  Some(Ordering::Greater)
+        }
+        if size1 < size2 {
+
+
+         return Some(Ordering::Less)
+        }
+        else {
+            let sizec1:i16 = self.complexitysize();
+            let sizec2:i16 = other.complexitysize();
+            if sizec1>sizec2 {
+
+                return Some(Ordering::Greater)
+
+            }
+            if sizec1<sizec2 {
+
+                return Some(Ordering::Less)
+
+            }
+            else{
+                return Some(Ordering::Equal)
+            
+            }
+        
+        }
+
+
+    }
+
 
 
 }
@@ -35,14 +82,14 @@ impl Term{
 //            / \ 
 //           a  b
 // would have size 3 :D 
-fn _complexitysize(&self)-> i32 {// this is when number of operations is the same 
-let size = 0    ; 
-    fn rec(node:&Node,number:i32)->i32{
+fn complexitysize(&self)-> i16{// this is when number of operations is the same 
+   
+    fn rec(node:&Node)->i16{
             match node {
-                Node::Number(_) => {number + 1}
-                Node::Variable(_) =>{number +1}
+                Node::Number(_) => 0,
+                Node::Variable(_) =>0, 
                 Node::BinaryOp(lhs,_ ,_rhs ) =>{
-                    rec(lhs,number +1) 
+                    1 + rec(lhs) 
 
 
                 }
@@ -54,7 +101,7 @@ let size = 0    ;
 
     }
 
-    return rec(&self.term,size) 
+    return rec(&self.term) 
 }
 // okay here is when things become interesting 
 // ok so we decided self has term + size law has to have some sort of size value inbedded only issue is that size
@@ -306,3 +353,29 @@ pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
 
 }
   
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    // Helper function for binary operations in tests
+    fn bin_op(lhs: Node, op: Operator, rhs: Node) -> Node {
+        Node::BinaryOp(Box::new(lhs), op, Box::new(rhs))
+    }
+
+    #[test]
+    fn test_term_partial_ord_by_size() {
+        let term_small_ops = Term { term: Node::Number(1), size: 0 }; // 0 ops
+        let term_medium_ops = Term { term: bin_op(Node::Number(1), Operator::Add, Node::Number(2)), size: 1 }; // 1 op
+        let term_large_ops = Term { term: bin_op(term_medium_ops.term.clone(), Operator::Multiply, Node::Number(3)), size: 2 }; // 2 ops
+
+        // Test based on 'size' attribute (primary comparison)
+        assert!(term_small_ops < term_medium_ops, "0 ops < 1 op");
+        assert!(term_medium_ops < term_large_ops, "1 op < 2 ops");
+        assert!(term_small_ops < term_large_ops, "0 ops < 2 ops");
+        assert!(term_large_ops > term_small_ops, "2 ops > 0 ops");
+
+        // Test equality based on size
+        let term_small_ops_clone = Term { term: Node::Variable('x'), size: 0 }; // Another 0-op term
+        assert!(term_small_ops == term_small_ops_clone, "Terms with same size should be equal by size initially");
+    }
+}
