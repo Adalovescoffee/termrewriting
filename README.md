@@ -1,12 +1,12 @@
 # Term Rewriting 
  
-An experimental library to learn about term rewriting system with goal to implement Knuth-Bendix algorithm in Rust. 
-
+ A fast-ish term rewriting system  in rust, with focus/goal on knuth bendix completion algorithm 
 # TO-DO: 
 
 - [x] terms 
 - [x] parser implementation
 - [x] apply axioms/rewrite rules on terms 
+- [ ] order of complexity 
 - [ ] find critical terms 
 - [ ] superposition 
 - [ ] ... 
