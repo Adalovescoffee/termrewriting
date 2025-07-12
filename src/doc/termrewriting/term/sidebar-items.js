@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["_equalitysides","countsize","from_str","matchandassigns","nodesubst"],"struct":["BySubsumption","Term"]};
