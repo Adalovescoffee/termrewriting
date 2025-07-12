@@ -2,7 +2,7 @@
 use std::fmt;
 use crate::lexer::{Lexer,TokenType};
 #[derive(PartialEq,Debug,Clone)]
-
+/// a node is either a number a variable or a binary op of itself 
 pub enum Node{
     Number(i64),
     Variable(char),
@@ -12,6 +12,7 @@ pub enum Node{
 
 
 impl Node{
+  /// check if two nodes are of the same types 
   pub fn same_type(&self, other:&Node) -> bool { // i think actually that this is useless but i might be wrong
     match (self, other) {
         (Node::Number(_),Node::Number(_)) => true, 
@@ -26,6 +27,7 @@ impl Node{
 
     
   }
+  /// previous get_char from back when i didn't know rust had cool patternmatching
   pub fn _get_char(&self) -> Option<char>{
     match self{
         Node::Variable(s)=>Some(*s) ,
@@ -36,6 +38,7 @@ impl Node{
 
 
   }
+ /// gets the value from a node::number()
  pub fn get_number(&self) -> Option<i64>{
     match self{
         Node::Number(s)=>Some(*s),
@@ -46,6 +49,8 @@ impl Node{
 
 
  }
+
+
 }
 #[derive(Debug, PartialEq)]
 pub enum ParserError {
@@ -54,6 +59,7 @@ pub enum ParserError {
     _LexerError(String), // Placeholder if lexer errors need to be propagated
 }
 #[derive(Debug,PartialEq,Clone,Copy)]
+/// operator can either be '+','-','*','/','=', for the sake of group theory, ^-1 needs to be implemented eventually 
 pub enum Operator{
     Add,
     Subtract,
@@ -62,6 +68,7 @@ pub enum Operator{
     Assign,   
 
 }
+/// parser struct : lexer , the current token its in, and the token it's peeking
 pub struct Parser {
     lexer: Lexer,
     current_token: TokenType,

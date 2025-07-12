@@ -3,24 +3,31 @@ use std::collections::HashMap;
 use std::cmp::Ordering;
 
 //use std::vec;
-//use crate::lexer::Lexer;
-use crate::parser::{ Node, Operator};
+use crate::lexer::Lexer;
+use crate::parser::{ Node, Operator,Parser,ParserError};
+
 //#[derive(PartialEq, Eq)]
 
+/// a term is a node (variable,number, binary operation of nodes) and has a size (number of operations)
 pub struct Term {
     pub term:Node,
     pub size:i16,
     
+    // i should probably add a vec here or smt where i store all the rewrites of the term in order, then for equality i'd just need first to check for the intersection of the rr and see if there is anything matching to 
+    //check for equality     
 
 
 }
+
 impl PartialEq for Term {
     fn eq(&self, other: &Self) -> bool {
         self.size == other.size && self.complexitysize() == other.complexitysize()
     }
 }
+/// order of complexity aka comparing the number of operations in a tree + checking the lhnode of the trees if equality   
 impl PartialOrd for Term {
     fn partial_cmp (&self, other:&Self) ->Option<Ordering> {
+
         let size1 = self.size; 
         let size2 = other.size; 
         if size1> size2 {
@@ -58,6 +65,41 @@ impl PartialOrd for Term {
 
 
 }
+
+
+// since rust can't have multiple orders implemented for the same struct we're making a wrapper structs 
+/// subsumption order wrapper 
+pub struct BySubsumption<'a>(pub &'a Term);
+
+impl <'a> PartialEq for BySubsumption<'a> {
+    fn eq(&self,other:&Self)-> bool {
+        self.0.subsumes(&other.0.term) && other.0.subsumes(&other.0.term)
+
+
+    }
+
+
+}
+impl <'a> PartialOrd for BySubsumption<'a> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self.0.subsumes(&other.0.term),other.0.subsumes(&self.0.term))
+        {
+            (true,true) => Some(Ordering::Equal),
+            (true,false) => Some(Ordering::Less),
+            (false,true) => Some(Ordering::Greater),
+            (false,false) =>{ 
+                println!("the two terms are incomparable");
+                
+            None}
+
+
+        }
+
+    }
+
+
+
+} 
 /*impl PartialOrd for Term {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
     
@@ -74,14 +116,9 @@ impl PartialOrd for Term {
 
 
 impl Term{     
-//gives the number of nodes on the left 
-// example : 
-//                +
-//              /  \
-//             *    2
-//            / \ 
-//           a  b
-// would have size 3 :D 
+
+
+/// returns the number of operations in a term 
 fn complexitysize(&self)-> i16{// this is when number of operations is the same 
    
     fn rec(node:&Node)->i16{
@@ -107,6 +144,10 @@ fn complexitysize(&self)-> i16{// this is when number of operations is the same
 // ok so we decided self has term + size law has to have some sort of size value inbedded only issue is that size
 // maybe it should be law :((lhs,size),(rhs,size)) 
 //time to change
+
+
+
+/// rewrites term by an equality, returns it as a term 
 pub fn rewriteby(&self, law:((&Node,i16),(&Node,i16)))-> Term{
     /*let (elhs,erhs) = match equalitysides(law){
         Some((lhs_node, rhs_node)) =>(lhs_node,rhs_node),
@@ -148,7 +189,71 @@ pub fn rewriteby(&self, law:((&Node,i16),(&Node,i16)))-> Term{
 
 }
 
+/// checks if one term is a subsumption of another  (not tested )
+pub fn subsumes(&self, target:&Node)->bool{  // this is called basic unification apparently
+    let mut relations = HashMap::new();
+    pub fn matchandbinds(pattern:&Node, target:&Node, relations:&mut HashMap<char,Node>)->bool{ 
+            if pattern.same_type(target)== false{
+                return false
 
+            }
+            if let Node::Variable(pattern_char) = pattern{
+                if let Some(prev) = relations.get(pattern_char){
+                
+                return prev == target;// false when same var is assigned to diff things (i feel this might get fucked later on)
+
+            }
+                else {
+
+                    relations.insert(*pattern_char,target.clone());
+                    return true;
+                }
+            }
+            if !pattern.same_type(target){
+                return false;
+            }
+            match pattern {
+                Node::Number(value) => {
+                    *value == target.get_number().unwrap()
+
+
+             }
+                Node::BinaryOp(plhs,_,prhs ) => {
+                    if let Node::BinaryOp(tlhs,_,trhs) = target{
+                        let lmatch = matchandbinds(plhs, tlhs, relations);
+                        if lmatch == false {return false}
+                        let rmatch = matchandbinds(prhs,trhs,relations); 
+                        if rmatch == false {return false}
+                        return true
+                    
+                    }
+                    else {
+                        false 
+
+                    }
+
+
+                }
+
+                _ => false
+            }
+
+
+
+    }
+
+    if matchandbinds(&self.term, target, &mut relations){
+        true
+
+    }
+    else{
+
+        false
+    }
+
+
+
+}
 }
 
 impl fmt::Display for Term {
@@ -178,50 +283,18 @@ impl fmt::Display for Term {
 
 
 
-/* 
-//first try for canmatch
-pub fn canmatch(&self,other:&Node/* ,relations:HashMap<char,Node>*/)-> bool{ // here self is the lhs btw 
-    //let mut elhs = &self.term.clone();
-    if self.term.same_type(other) == false {
-
-        return false
-    }
-    match &self.term {
-    Node::Number(a) => *a == other.get_number().unwrap(),
-    Node::Variable(a) => self.term.same_type(other),
-    Node::BinaryOp(plhs,op_self,prhs) =>{
-    if let Node::BinaryOp(tlhs,op_self,trhs)= other{
-        self.canmatch(tlhs) && self.canmatch(trhs)
-
-     
-
-    }
-
-
-    
-    else {
-        false
-        //ahaha haha funn
-    }
-    
 
 
 
-    }
-    _ => false,
-}
-}
 
-
-*/
+// subsumption ordering x*y < (a+b)*(c+d) 
 
 
 
 
 
-
-//check if it's an equality, returns lhs and rhs if it's not 
-pub fn equalitysides(term:&Node)->Option<(Node,(Node))>{
+///check if it's an equality, returns lhs and rhs if it's not 
+pub fn _equalitysides(term:&Node)->Option<(Node,(Node))>{
     if let Node::BinaryOp(lhs,Operator::Assign ,rhs) = term.clone(){
         return Some((*lhs,*rhs))
     }
@@ -231,9 +304,9 @@ pub fn equalitysides(term:&Node)->Option<(Node,(Node))>{
     }
 
 }
-//substitutes a node 
-pub fn nodesubst(snode:&Node,relations:&HashMap<char,Node>)->(Node,i16){
-    let nodesize = 0; 
+///substitutes a node 
+pub fn nodesubst(snode:&Node,relations:&HashMap<char,Node>)->(Node,i16){ 
+    
     match snode{
         Node::Number(n) =>{
              
@@ -265,9 +338,9 @@ pub fn nodesubst(snode:&Node,relations:&HashMap<char,Node>)->(Node,i16){
 
 
 }
-// 
+/// counts the size of a tree 
 pub fn countsize(node:&Node)->i16{
-    let size:i16 = 0; 
+  
     match node{
         Node::Number(_) =>{
             return 0;
@@ -288,7 +361,8 @@ pub fn countsize(node:&Node)->i16{
 
 // this function matchand binds on a given like node, it doesn't move the node 
 // what i need rn is a function that takes this matchandbinds if it return a failure on a given node in the b 
-pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
+/// On a given node of the ast, it attempts to match if one node can be substituted (subsumpted?)
+pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{  // this is called basic unification apparently
     let mut relations = HashMap::new();
     pub fn matchandbinds(pattern:&Node, target:&Node, relations:&mut HashMap<char,Node>)->bool{ 
             if pattern.same_type(target)== false{
@@ -353,14 +427,82 @@ pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
 
 }
   
+/// helper that defines term from str (so far no error when term is an equality 
+pub fn from_str(s: &str) -> Result<Term, String> {
+        let lexer = Lexer::new(s.to_string());
+        let mut parser = Parser::new(lexer);
+
+        match parser.parse_equality() {
+            Ok(((lhs_node, lhs_ops), (rhs_node, _rhs_ops))) => {
+                
+                if lhs_node == rhs_node { 
+                    Ok(Term { term: lhs_node, size: lhs_ops })
+                } else {
+                    // If lhs_node != rhs_node, it means parse_equality found an assignment
+                    // for now only viable for single term not assignements 
+                    // 
+                     Ok(Term { term: lhs_node, size: lhs_ops })
+                }
+            },
+            Err(e) => Err(format!("Parsing error for '{}': {:?}", s, e)),
+        }
+    }
+
 #[cfg(test)]
 mod tests {
     use super::*;
     
-    // Helper function for binary operations in tests
+    /// Helper function for binary operations in tests
     fn bin_op(lhs: Node, op: Operator, rhs: Node) -> Node {
         Node::BinaryOp(Box::new(lhs), op, Box::new(rhs))
     }
+    #[test]
+    fn testsubsumptionorder(){
+        let t1 = from_str("a + b").unwrap();
+        let t2 = from_str("(x*y) + c").unwrap();
+        
+        let term1 = BySubsumption(&t1);
+        let term2 = BySubsumption(&t2);
+        
+        let boolt = term1 < term2;
+        assert_eq!(boolt,true)
+      
+        
+
+    }
+    #[test]
+    fn testsubsumptionorder2(){
+        let t1 = from_str("a + b").unwrap();
+        let t2 = from_str("b + c").unwrap();
+        
+        let term1 = BySubsumption(&t1);
+        let term2 = BySubsumption(&t2);
+        
+        let boolt = term1 < term2;
+        assert_eq!(boolt,false)
+      
+        
+
+    }
+    #[test]
+    fn testsubsumptionorder3(){
+        let t1 = from_str("a + b").unwrap();
+        let t2 = from_str("c").unwrap();
+        
+        let term1 = BySubsumption(&t1);
+        let term2 = BySubsumption(&t2);
+        
+        let boolt = term1 < term2;
+        assert_eq!(boolt,false)
+      
+        
+
+    }
+
+
+
+
+
 
     #[test]
     fn test_term_partial_ord_by_size() {
@@ -377,5 +519,57 @@ mod tests {
         // Test equality based on size
         let term_small_ops_clone = Term { term: Node::Variable('x'), size: 0 }; // Another 0-op term
         assert!(term_small_ops == term_small_ops_clone, "Terms with same size should be equal by size initially");
+    }
+     #[test]
+
+    fn test_term_partial_ord_complex_tie_break_left_leaning() {
+        // Term A: (a + b) * c
+        // Ops (size): 2 (for '+' and '*')
+        // Left-leaning Nodes (complexitysize):
+        //   '*' (1) + left child of '*' (which is '(a+b)')
+        //   '+' (1) + left child of '+' (which is 'a')
+        //   'a' (1)
+        // Total complexitysize for Term A: 1 (for '*') + 1 (for '+') + 1 (for 'a') = 3 nodes
+        let term_a_node = Node::BinaryOp(
+            Box::new(Node::BinaryOp(
+                Box::new(Node::Variable('a')),
+                Operator::Add,
+                Box::new(Node::Variable('b')),
+            )),
+            Operator::Multiply,
+            Box::new(Node::Variable('c')),
+        );
+        let term_a = Term { term: term_a_node.clone(), size: countsize(&term_a_node) };
+        println!("Term A: {}", term_a);
+        println!("  Actual size: {}", term_a.size);
+        println!("  Actual complexitysize: {}", term_a.complexitysize());
+        assert_eq!(term_a.size, 2, "Term A size should be 2");
+
+
+        let term_b_node = Node::BinaryOp(
+            Box::new(Node::Variable('x')),
+            Operator::Multiply,
+            Box::new(Node::BinaryOp(
+                Box::new(Node::Variable('y')),
+                Operator::Add,
+                Box::new(Node::Variable('z')),
+            )),
+        );
+        let term_b = Term { term: term_b_node.clone(), size: countsize(&term_b_node) };
+        println!("Term B: {}", term_b);
+        println!("  Actual size: {}", term_b.size);
+        println!("  Actual complexitysize: {}", term_b.complexitysize());
+        assert_eq!(term_b.size, 2, "Term B size should be 2");
+
+        // Test the comparison
+        println!("\nComparing Term A and Term B:");
+        println!("  Term A: {} (size={}, complexity={})", term_a.term, term_a.size, term_a.complexitysize());
+        println!("  Term B: {} (size={}, complexity={})", term_b.term, term_b.size, term_b.complexitysize());
+
+        assert_eq!(term_a.partial_cmp(&term_b), Some(Ordering::Greater), "Term A should be Greater than Term B");
+        assert_eq!(term_b.partial_cmp(&term_a), Some(Ordering::Less), "Term B should be Less than Term A (symmetric check)");
+        assert!(term_a > term_b, "Term A should be greater than Term B using '>' operator");
+        println!("Term A: {}, > term B: {}",term_a.term,term_b.term);
+        assert!(term_b < term_a, "Term B should be less than Term A using '<' operator");
     }
 }
