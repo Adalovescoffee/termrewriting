@@ -6,7 +6,8 @@
 - [x] terms 
 - [x] parser implementation
 - [x] apply axioms/rewrite rules on terms 
-- [ ] order of complexity 
+- [x] order of complexity 
+- [x] subsumption order 
 - [ ] find critical terms 
 - [ ] superposition 
 - [ ] ... 
