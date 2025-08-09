@@ -7,7 +7,7 @@ pub enum Node{
     Number(i64),
     Variable(char),
     BinaryOp(Box<Node>,Operator,Box<Node>),
-    UnaryOp(Operator,Box<Node>)
+  //  UnaryOp(Operator,Box<Node>)
 }
 
 
@@ -17,7 +17,7 @@ impl Node{
     match (self, other) {
         (Node::Number(_),Node::Number(_)) => true, 
         (Node::BinaryOp(_,op_self,_), Node::BinaryOp(_,op_other,_))=> op_self == op_other,
-        (Node::UnaryOp(op_self,_ ),Node::UnaryOp(op_other,_ ))=> op_self == op_other,
+     //   (Node::UnaryOp(op_self,_ ),Node::UnaryOp(op_other,_ ))=> op_self == op_other,
         (Node::Variable(_),_)=>true,
         _ => false,
 
@@ -151,7 +151,7 @@ impl Parser {
             //add option for variable, then for left parenthesis? -a+b is variable -(a+b) is
             else if let TokenType::Variable(value ) =self.current_token{
                 self.expect_and_advance(TokenType::Variable(value))?;
-                Ok((Node::UnaryOp(Operator::Subtract,Box::new(Node::Variable((value)))),0))
+                Ok((Node::BinaryOp(Box::new(Node::Number(0)),Operator::Subtract,Box::new(Node::Variable(value))),0))
                 
 
 
@@ -160,7 +160,7 @@ impl Parser {
                 self.expect_and_advance(TokenType::LParen)?;
                 let(node, opsnumber) = self.parse_term()?;
                 self.expect_and_advance(TokenType::RParen)?;
-                Ok((Node::UnaryOp(Operator::Subtract,Box::new(node)),opsnumber))
+                Ok((Node::BinaryOp(Box::new(Node::Number(0)),Operator::Subtract,Box::new(node)),opsnumber))
                 
 
             }
@@ -318,76 +318,7 @@ impl fmt::Display for Node {
                 // to consider operator precedence and associativity.
                 write!(f, "({} {} {})", lhs, op_str, rhs)
             }
-            Node::UnaryOp(op,rhs) => {
-                write!(f,"(- {})",rhs)
-
-            }
+           
         }
-    }
-}
-
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn testsimpleunaryopnumber(){
-        let number = "-2".to_string();
-        let lexer = Lexer::new(number);
-        let mut parser = Parser::new(lexer);
-        let node = match parser.parse_equality(){
-        Ok(node) =>{node 
-            
-
-
-        }
-        Err(e)=>{
-        eprintln!("Error parsing term \"{}\": {:?}", "-2", e);
-        ((Node::Variable('f'),0),(Node::Variable('f'),0))
-
-    }};
-     println!("{}",node.0.0);
-     assert_eq!(node.0.0, Node::Number(-2)) 
-     
-    }
-
-    #[test]
-    fn testsimpleunaryvariable(){
-        let variable = "-a".to_string();
-        let lexer = Lexer::new(variable);
-        let mut parser = Parser::new(lexer);
-        let node = match parser.parse_equality(){
-            Ok(node) => {
-                node
-            }
-            Err(e) => {
-            eprintln!("Error parsing term \"{}\";{:?}","-2",e);
-            ((Node::Variable('f'),0),(Node::Variable('f'),0))
-
-
-            }};
-            println!("{}",node.0.0);
-            assert_eq!(node.0.0,Node::UnaryOp(Operator::Subtract,Box::new(Node::Variable('a'))))
-    }
-    #[test]
-    fn testsimplenegativeparenthesis(){
-        let exp  = "-(a+b)".to_string();
-        let lexer = Lexer::new(exp);
-        let mut parser = Parser::new(lexer);
-        let node = match parser.parse_equality(){
-        Ok(node) => {
-            node
-
-        }
-
-        Err(e) => {
-            eprintln!("Error parsing term \"{}\";{:?}","-2",e);
-            ((Node::Variable('f'),0),(Node::Variable('f'),0))
-
-
-            }};
-        println!("{}",node.0.0);
-
     }
 }

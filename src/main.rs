@@ -1,12 +1,11 @@
-#[cfg(not(feature="term"))]
 mod lexer;
-mod parser; 
+mod parser;
 mod term;
 use lexer::Lexer;
 use parser::{Parser, Node,ParserError}; // Import what you need from parser
 
 
-//use crate::term::Term;
+use crate::term::Term;
 
 
 fn main() {
@@ -66,11 +65,11 @@ fn main() {
 
     };
      
-       // let term1 = Term{term: node1.0.0,size:node1.0.1 };
+    let term1 = Term{term: node1.0.0,size:node1.0.1 };
           
-       // let rewrittenterm = term1.rewriteby(((&node2.0.0,node2.0.1),(&node2.1.0,node2.1.1)));
-      //  let term2 = Term{term:node2.0.0,size:node2.0.1};  
-       // println!("By the law \"{}\", \"{}\" => \"{}\"", term2, term1, rewrittenterm);
+    let rewrittenterm = term1.rewriteby(((&node2.0.0,node2.0.1),(&node2.1.0,node2.1.1)));
+    let term2 = Term{term:node2.0.0,size:node2.0.1};  
+        println!("By the law \"{}\", \"{}\" => \"{}\"", term2, term1, rewrittenterm);
     
 
     let rewrite_examples = vec![
@@ -91,12 +90,12 @@ fn main() {
         // Example 8: Another Commutativity (a + b = b + a)
         ("3 + x", "a + b = b + a"),
         // Example 9: Zero Multiplication (x * 0 = 0)
+        ("-(2+3)","-(a+b) = -a + -b "),
         ("y * 0", "x * 0 = 0"),
         // Example 10: Complex expression with multiple potential matches (only one applies per pass)
         ("(a + 0) * (b + 0)", "x + 0 = x"), // Should simplify both sides
     ];
-}
-   /*  for (i, (term_str, rule_str)) in rewrite_examples.into_iter().enumerate() {
+   /* */ for (i, (term_str, rule_str)) in rewrite_examples.into_iter().enumerate() {
         println!("--- Rewriting Example {} ---", i + 1);
 
         
@@ -139,4 +138,4 @@ fn parse_input_to_rule_tuple(input_str: &str) -> Result<((Node, i16), (Node, i16
     let mut parser = Parser::new(lexer);
    
     parser.parse_equality()
-}*/
+}

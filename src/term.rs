@@ -130,7 +130,7 @@ fn complexitysize(&self)-> i16{// this is when number of operations is the same
 
 
                 }
-                Node::UnaryOp(_,rhs)=> rec(rhs) // idk if it should add 1 or not we'll see  
+               // Node::UnaryOp(_,rhs)=> rec(rhs) // idk if it should add 1 or not we'll see  
 
             }
 
@@ -175,7 +175,10 @@ pub fn rewriteby(&self, law:((&Node,i16),(&Node,i16)))-> Term{
 
 
             }
+         /*    Node::UnaryOp(op,lhs) => {// for now the only op is minus 
+                let 
 
+            }*/ 
             Node::Number(val) => (Node::Number(*val),0),
             Node::Variable(c) => (Node::Variable(*c),0)
 
