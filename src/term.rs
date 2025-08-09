@@ -120,7 +120,7 @@ impl Term{
 
 /// returns the number of operations in a term 
 fn complexitysize(&self)-> i16{// this is when number of operations is the same 
-   
+   // wtf u're telling me i don't account for the lhs? wtf is going on ohh nvm this is the one when equality ok
     fn rec(node:&Node)->i16{
             match node {
                 Node::Number(_) => 0,
@@ -130,7 +130,7 @@ fn complexitysize(&self)-> i16{// this is when number of operations is the same
 
 
                 }
-
+               // Node::UnaryOp(_,rhs)=> rec(rhs) // idk if it should add 1 or not we'll see  
 
             }
 
@@ -175,7 +175,10 @@ pub fn rewriteby(&self, law:((&Node,i16),(&Node,i16)))-> Term{
 
 
             }
+         /*    Node::UnaryOp(op,lhs) => {// for now the only op is minus 
+                let 
 
+            }*/ 
             Node::Number(val) => (Node::Number(*val),0),
             Node::Variable(c) => (Node::Variable(*c),0)
 
@@ -573,3 +576,4 @@ mod tests {
         assert!(term_b < term_a, "Term B should be less than Term A using '<' operator");
     }
 }
+     
