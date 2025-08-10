@@ -130,7 +130,7 @@ fn complexitysize(&self)-> i16{// this is when number of operations is the same
 
 
                 }
-               // Node::UnaryOp(_,rhs)=> rec(rhs) // idk if it should add 1 or not we'll see  
+                Node::UnaryOp(_,rhs)=> rec(rhs) // idk if it should add 1 or not we'll see  
 
             }
 
@@ -171,14 +171,19 @@ pub fn rewriteby(&self, law:((&Node,i16),(&Node,i16)))-> Term{
             Node::BinaryOp(lhs,op,rhs) => {
                 let (new_lhs,lhsize) = rec(lhs,rule_pattern,subst_pattern);
                 let (new_rhs,rhsize) = rec(rhs,rule_pattern,subst_pattern);
+                
+                
                 (Node::BinaryOp(Box::new(new_lhs),*op,Box::new(new_rhs)),lhsize + rhsize +1) 
 
-
+            
+            
             }
-         /*    Node::UnaryOp(op,lhs) => {// for now the only op is minus 
-                let 
-
-            }*/ 
+             Node::UnaryOp(op,rhs) => {// for now the only op is minus 
+                let (new_rhs,rhsize)= rec(rhs,rule_pattern,subst_pattern);
+                let (new_lhs,lhsize)= rec(&Node::Number(0),rule_pattern,subst_pattern);// so here we consider -a to be 0 - a 
+                // possible issue -- a :c 
+                (Node::BinaryOp(Box::new(new_lhs),*op,Box::new(new_rhs)),lhsize + rhsize + 1)
+            }
             Node::Number(val) => (Node::Number(*val),0),
             Node::Variable(c) => (Node::Variable(*c),0)
 
@@ -332,7 +337,19 @@ pub fn nodesubst(snode:&Node,relations:&HashMap<char,Node>)->(Node,i16){
         Node::BinaryOp(lhs,op ,rhs ) => {
             let (new_lhs,lhsize) = nodesubst(lhs,relations); 
             let (new_rhs ,rhsize)= nodesubst(rhs, relations);
-            (Node::BinaryOp(Box::new(new_lhs),*op,Box::new(new_rhs)),lhsize + rhsize +1)
+            if op == &Operator::Subtract  {
+                (Node::UnaryOp(Operator::Subtract,Box::new(new_rhs)),rhsize + 1)
+
+            }
+            else {
+            (Node::BinaryOp(Box::new(new_lhs),*op,Box::new(new_rhs)),lhsize + rhsize +1)}
+            
+
+        }
+        Node::UnaryOp(op,rhs) => {
+            let (new_lhs,lhsize) = nodesubst(&Node::Number(0),relations);
+            let (new_rhs,rhsize) = nodesubst(rhs,relations);
+            (Node::BinaryOp(Box::new(new_lhs),*op,Box::new(new_rhs)),lhsize + rhsize + 1)
 
 
         }
@@ -355,7 +372,10 @@ pub fn countsize(node:&Node)->i16{
             return countsize(lhs) + countsize(rhs) + 1;
 
         }
+        Node::UnaryOp(_,rhs ) => {
+            return countsize(rhs) + 1; 
 
+        }
 
     }
 
@@ -576,4 +596,3 @@ mod tests {
         assert!(term_b < term_a, "Term B should be less than Term A using '<' operator");
     }
 }
-     

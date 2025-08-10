@@ -7,7 +7,7 @@ pub enum Node{
     Number(i64),
     Variable(char),
     BinaryOp(Box<Node>,Operator,Box<Node>),
-  //  UnaryOp(Operator,Box<Node>)
+    UnaryOp(Operator,Box<Node>)
 }
 
 
@@ -17,7 +17,7 @@ impl Node{
     match (self, other) {
         (Node::Number(_),Node::Number(_)) => true, 
         (Node::BinaryOp(_,op_self,_), Node::BinaryOp(_,op_other,_))=> op_self == op_other,
-     //   (Node::UnaryOp(op_self,_ ),Node::UnaryOp(op_other,_ ))=> op_self == op_other,
+        (Node::UnaryOp(op_self,_ ),Node::UnaryOp(op_other,_ ))=> op_self == op_other,
         (Node::Variable(_),_)=>true,
         _ => false,
 
@@ -143,15 +143,35 @@ impl Parser {
             self.advance(); //advance the token 
             //println!("{:?}",self.current_token);
             if let TokenType::Integer(value) = self.current_token{
-            self.expect_and_advance(TokenType::Integer(value))?;
-            //println!("{}",-value);
-            Ok((Node::Number(-value),0))
+                self.expect_and_advance(TokenType::Integer(value))?;
+                //println!("{}",-value);
+                Ok((Node::Number(-value),0))
 
             }
+            else if let TokenType::Minus = self.current_token{
+                let mut counter = 0;
+                while self.peek_token == TokenType::Minus{
+                    self.expect_and_advance(TokenType::Minus)?;
+                    counter = counter + 1; 
+
+                
+                }
+                let countercopy = counter;
+                let (node,opsnumber) = self.parse_factor()?;
+                let mut last = Node::UnaryOp(Operator::Subtract,Box::new(node)); 
+                while counter!= 0 {
+                    last = Node::UnaryOp(Operator::Subtract,Box::new(last));
+                    counter = counter - 1; 
+
+                }
+                Ok((last,opsnumber + countercopy))
+
+            }
+            
             //add option for variable, then for left parenthesis? -a+b is variable -(a+b) is
             else if let TokenType::Variable(value ) =self.current_token{
                 self.expect_and_advance(TokenType::Variable(value))?;
-                Ok((Node::BinaryOp(Box::new(Node::Number(0)),Operator::Subtract,Box::new(Node::Variable(value))),0))
+                Ok((Node::UnaryOp(Operator::Subtract,Box::new(Node::Variable((value)))),0))
                 
 
 
@@ -160,13 +180,13 @@ impl Parser {
                 self.expect_and_advance(TokenType::LParen)?;
                 let(node, opsnumber) = self.parse_term()?;
                 self.expect_and_advance(TokenType::RParen)?;
-                Ok((Node::BinaryOp(Box::new(Node::Number(0)),Operator::Subtract,Box::new(node)),opsnumber))
+                Ok((Node::UnaryOp(Operator::Subtract,Box::new(node)),opsnumber))
                 
 
             }
             else {
                  Err(ParserError::UnexpectedToken {
-            expected: TokenType::Integer(42), // 
+            expected: TokenType::Integer(40), // 
             found: self.current_token.clone(),
             position: self.lexer.position, // fixed ehehe i think 
         })
@@ -268,8 +288,13 @@ fn parse_tuah(&mut self ) -> Result<(Node,i16), ParserError> {
             
            //  println!("You are currently in parse_term before tuah,\"{:?}\",opsnumber is :\"{}\"",self.current_token,opsnumber);
             // i'm thinking here i should add a conditional on when lhs is empty? 
+            if operator == Operator::Subtract{
+                lhs = Node::BinaryOp(Box::new(lhs),Operator::Add,Box::new(Node::UnaryOp(Operator::Subtract,Box::new(rhs))));
+
+            }
+            else {
             lhs = Node::BinaryOp(Box::new(lhs), operator, Box::new(rhs));
-             
+            }
         
           //  println!("You are currently in parse_term lhs def,\"{:?}\",opsnumber is :\"{}\"",self.current_token,opsnumber);
         }
@@ -318,7 +343,123 @@ impl fmt::Display for Node {
                 // to consider operator precedence and associativity.
                 write!(f, "({} {} {})", lhs, op_str, rhs)
             }
-           
+            Node::UnaryOp(op,rhs) => {
+                write!(f,"(- {})",rhs)
+
+            }
         }
     }
+}
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn testsimpleunaryopnumber(){
+        let number = "-2".to_string();
+        let lexer = Lexer::new(number);
+        let mut parser = Parser::new(lexer);
+        let node = match parser.parse_equality(){
+        Ok(node) =>{node 
+            
+
+
+        }
+        Err(e)=>{
+        eprintln!("Error parsing term \"{}\": {:?}", "-2", e);
+        ((Node::Variable('f'),0),(Node::Variable('f'),0))
+
+    }};
+     println!("{}",node.0.0);
+     assert_eq!(node.0.0, Node::Number(-2)) 
+     
+    }
+
+    #[test]
+    fn testsimpleunaryvariable(){
+        let variable = "-a".to_string();
+        let lexer = Lexer::new(variable);
+        let mut parser = Parser::new(lexer);
+        let node = match parser.parse_equality(){
+            Ok(node) => {
+                node
+            }
+            Err(e) => {
+            eprintln!("Error parsing term \"{}\";{:?}","-2",e);
+            ((Node::Variable('f'),0),(Node::Variable('f'),0))
+
+
+            }};
+            println!("{}",node.0.0);
+            assert_eq!(node.0.0,Node::UnaryOp(Operator::Subtract,Box::new(Node::Variable('a'))))
+    }
+    #[test]
+    fn testsimplenegativeparenthesis(){
+        let exp  = "-(a+b)".to_string();
+        let lexer = Lexer::new(exp);
+        let mut parser = Parser::new(lexer);
+        let node = match parser.parse_equality(){
+        Ok(node) => {
+            node
+
+        }
+
+        Err(e) => {
+            eprintln!("Error parsing term \"{}\";{:?}","-2",e);
+            ((Node::Variable('f'),0),(Node::Variable('f'),0))
+
+
+            }};
+        println!("{}",node.0.0);
+
+    }
+    #[test]
+    fn testnewsimpleminusimplementation(){
+    let exp  = "-a - b".to_string();
+        let lexer = Lexer::new(exp);
+        let mut parser = Parser::new(lexer);
+        let node = match parser.parse_equality(){
+        Ok(node) => {
+            node
+
+        }
+
+        Err(e) => {
+            eprintln!("Error parsing term \"{}\";{:?}","-2",e);
+            ((Node::Variable('f'),0),(Node::Variable('f'),0))
+
+
+            }};
+        println!("{}",node.0.0);
+        
+
+
+
+    }
+    #[test]
+    fn testhardminussimplementation(){
+    let exp  = "--a".to_string();
+        let lexer = Lexer::new(exp);
+        let mut parser = Parser::new(lexer);
+        let node = match parser.parse_equality(){
+        Ok(node) => {
+            node
+
+        }
+
+        Err(e) => {
+            eprintln!("Error parsing term \"{}\";{:?}","--a",e);
+            ((Node::Variable('f'),0),(Node::Variable('f'),0))
+
+
+            }};
+        println!("{}",node.0.0);
+
+
+
+
+    }
+
 }
