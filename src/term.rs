@@ -126,11 +126,12 @@ fn complexitysize(&self)-> i16{// this is when number of operations is the same
                 Node::Number(_) => 0,
                 Node::Variable(_) =>0, 
                 Node::BinaryOp(lhs,_ ,_rhs ) =>{
-                    1 + rec(lhs) 
+                    1 + rec(lhs)
 
 
                 }
-                Node::UnaryOp(_,rhs)=> rec(rhs) // idk if it should add 1 or not we'll see  
+                Node::UnaryOp(_,rhs)=> {
+                    1 + rec(rhs) }// idk if it should add 1 or not we'll see  
 
             }
 
@@ -180,9 +181,9 @@ pub fn rewriteby(&self, law:((&Node,i16),(&Node,i16)))-> Term{
             }
              Node::UnaryOp(op,rhs) => {// for now the only op is minus 
                 let (new_rhs,rhsize)= rec(rhs,rule_pattern,subst_pattern);
-                let (new_lhs,lhsize)= rec(&Node::Number(0),rule_pattern,subst_pattern);// so here we consider -a to be 0 - a 
-                // possible issue -- a :c 
-                (Node::BinaryOp(Box::new(new_lhs),*op,Box::new(new_rhs)),lhsize + rhsize + 1)
+                //let (new_lhs,lhsize)= rec(&Node::Number(0),rule_pattern,subst_pattern);// so here we consider -a to be 0 - a 
+                // possible issue -- a :c yep that was dumb
+                (Node::UnaryOp(*op,Box::new(new_rhs)), rhsize + 1)
             }
             Node::Number(val) => (Node::Number(*val),0),
             Node::Variable(c) => (Node::Variable(*c),0)
@@ -347,9 +348,9 @@ pub fn nodesubst(snode:&Node,relations:&HashMap<char,Node>)->(Node,i16){
 
         }
         Node::UnaryOp(op,rhs) => {
-            let (new_lhs,lhsize) = nodesubst(&Node::Number(0),relations);
+            
             let (new_rhs,rhsize) = nodesubst(rhs,relations);
-            (Node::BinaryOp(Box::new(new_lhs),*op,Box::new(new_rhs)),lhsize + rhsize + 1)
+            (Node::UnaryOp(*op,Box::new(new_rhs)), rhsize + 1)
 
 
         }
@@ -400,7 +401,7 @@ pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
             }
                 else {
 
-                    relations.insert(*pattern_char,target.clone());
+                    relations.insert(*pattern_char,target.clone()); 
                     return true;
                 }
             }
@@ -412,7 +413,22 @@ pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
                     *value == target.get_number().unwrap()
 
 
-             }
+             }  
+                Node::UnaryOp(_,prhs )=> {
+                    if let Node::UnaryOp(_,trhs ) = target {
+                        let rmatch = matchandbinds(prhs,trhs,relations);
+                        if rmatch == false {return false}
+                        return true 
+
+                    }
+                    else {
+                        false
+
+                    }
+
+
+
+                }
                 Node::BinaryOp(plhs,_,prhs ) => {
                     if let Node::BinaryOp(tlhs,_,trhs) = target{
                         let lmatch = matchandbinds(plhs, tlhs, relations);

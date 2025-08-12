@@ -164,14 +164,14 @@ impl Parser {
                     counter = counter - 1; 
 
                 }
-                Ok((last,opsnumber + countercopy))
+                Ok((last,opsnumber + countercopy + 1))
 
             }
             
             //add option for variable, then for left parenthesis? -a+b is variable -(a+b) is
             else if let TokenType::Variable(value ) =self.current_token{
                 self.expect_and_advance(TokenType::Variable(value))?;
-                Ok((Node::UnaryOp(Operator::Subtract,Box::new(Node::Variable((value)))),0))
+                Ok((Node::UnaryOp(Operator::Subtract,Box::new(Node::Variable((value)))),1))
                 
 
 
@@ -180,7 +180,7 @@ impl Parser {
                 self.expect_and_advance(TokenType::LParen)?;
                 let(node, opsnumber) = self.parse_term()?;
                 self.expect_and_advance(TokenType::RParen)?;
-                Ok((Node::UnaryOp(Operator::Subtract,Box::new(node)),opsnumber))
+                Ok((Node::UnaryOp(Operator::Subtract,Box::new(node)),opsnumber + 1))
                 
 
             }
@@ -440,7 +440,7 @@ mod tests {
     }
     #[test]
     fn testhardminussimplementation(){
-    let exp  = "--a".to_string();
+    let exp  = "---a".to_string();
         let lexer = Lexer::new(exp);
         let mut parser = Parser::new(lexer);
         let node = match parser.parse_equality(){
@@ -455,7 +455,7 @@ mod tests {
 
 
             }};
-        println!("{}",node.0.0);
+        println!("{:?}",(node.0.0,node.0.1));
 
 
 
