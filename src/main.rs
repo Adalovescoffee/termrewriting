@@ -1,6 +1,7 @@
 mod lexer;
 mod parser;
 mod term;
+mod knuthbendix;
 use lexer::Lexer;
 use parser::{Parser, Node,ParserError}; // Import what you need from parser
 

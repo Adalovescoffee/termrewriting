@@ -611,4 +611,86 @@ mod tests {
         println!("Term A: {}, > term B: {}",term_a.term,term_b.term);
         assert!(term_b < term_a, "Term B should be less than Term A using '<' operator");
     }
+    #[test]
+    fn subsumptionunificationtest(){
+         let t1 = from_str("-a + a ").unwrap();
+        let t2 = from_str("(x+y)+z").unwrap();
+        
+        let term1 = BySubsumption(&t1);
+        let term2 = BySubsumption(&t2);
+        println!("{:?}",unify(&t2.term, &t1.term));
+        let boolt = term1 >term2;
+        //assert_eq!(boolt,true)
+
+
+
+
+    }
+}
+pub fn unify(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
+    let mut copy = pattern; 
+   
+    if let Some(relations )= matchandassigns(pattern,target){
+
+        return Some(relations)
+
+    }
+    // :D
+    
+    else if copy.same_type(&Node::Variable('a'))==false || copy.same_type(&Node::Number(0))==false{
+        let mut result:Option<HashMap<char,Node>>;
+        
+            match copy {
+            /*Node::Number(value) => {
+
+            }
+            Node::Variable() => {
+
+
+
+            }*/
+                Node::BinaryOp(lhs,op,rhs) => {
+                    if let Some(relations) = unify(lhs,target){
+                        return Some(relations)
+                    }
+                    else if let Some(relations) = unify(rhs,target){
+                        return Some(relations)
+
+
+                    }
+                    else {
+                       return None
+
+
+                    }
+
+                }   
+                Node::UnaryOp(op,rhs ) => {
+                    if let Some(relations) = unify(rhs,target){
+                        return Some(relations)
+
+                    }
+                    else {
+                        return None
+                    }
+
+
+                }
+                _ => {
+                    return None
+
+
+                }
+            }
+
+
+
+        
+
+    }
+    else {
+        return None
+    }
+
+
 }
