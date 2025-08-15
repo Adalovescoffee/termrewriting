@@ -389,10 +389,12 @@ pub fn countsize(node:&Node)->i16{
 pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{  // this is called basic unification apparently
     let mut relations = HashMap::new();
     pub fn matchandbinds(pattern:&Node, target:&Node, relations:&mut HashMap<char,Node>)->bool{ 
-            if pattern.same_type(target)== false{
+            // i really wonder if this is necessary since this is false?? 
+            /*if pattern.same_type(target)== false{
                 return false
 
             }
+            */
             if let Node::Variable(pattern_char) = pattern{
                 if let Some(prev) = relations.get(pattern_char){
                 
@@ -411,12 +413,14 @@ pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
             match pattern {
                 Node::Number(value) => {
                     *value == target.get_number().unwrap()
-
+    
 
              }  
                 Node::UnaryOp(_,prhs )=> {
                     if let Node::UnaryOp(_,trhs ) = target {
+                        
                         let rmatch = matchandbinds(prhs,trhs,relations);
+                    
                         if rmatch == false {return false}
                         return true 
 
@@ -611,4 +615,174 @@ mod tests {
         println!("Term A: {}, > term B: {}",term_a.term,term_b.term);
         assert!(term_b < term_a, "Term B should be less than Term A using '<' operator");
     }
+
+
+
+    #[test]
+    fn subsumptionunificationtest(){
+         let t1 = from_str("x + 0   ").unwrap();
+        let t2 = from_str("-x + x").unwrap();
+        
+        let term1 = BySubsumption(&t1);
+        let term2 = BySubsumption(&t2);
+
+
+        println!("Hashmap for (-a +a -> (x+y)+z ) is {:?}",unify(&t2.term, &t1.term));
+        let boolt = term1 >term2;
+        //assert_eq!(boolt,true)
+
+
+
+
+    }
+}
+///takes a pattern as well as a relations related to the pattern, fills the missing variables from the pattern with identity! 
+pub fn free(pattern:&Node,relations:HashMap<char,Node>)->Option<HashMap<char,Node>>{
+    //let mut relationscopy = relations; 
+    let mut id = 0;
+    let mut relationscopy:HashMap<char,Node> = relations.clone();
+    pub fn rec(pattern:&Node,relations:&mut HashMap<char,Node>,mut id:i64)-> bool{
+        // this changes depending on the op 
+        // 1 => * 
+        // 0 => + 
+        match pattern {
+            Node::Variable(char) => {
+                if let Some(prev) = relations.get(char){
+                    
+                        return prev == pattern; 
+                }    
+                else {
+                    relations.insert(*char,Node::Number(id)); 
+                    return true;  
+                
+                }
+
+
+            }
+            Node::BinaryOp(lhs,op,rhs) => {
+                if op== &Operator::Add || op == &Operator::Subtract {
+                    id = 0;
+                    rec(lhs,relations,id) && rec(rhs,relations,id)
+                }
+                else if op == &Operator::Multiply || op == &Operator::Divide {
+
+                    id = 1; 
+                    rec(lhs,relations,id) && rec(rhs,relations,id)
+
+                }
+                else {
+                    return false;
+
+                }
+
+
+            }
+            Node::UnaryOp(op,rhs) => {
+                // for now the only unaryop is minus so 
+                id = 0;
+                rec(rhs,relations,id)
+
+            }
+            Node::Number(number) => {
+                // wtf do i do here continue ? 
+                    
+                return false; 
+
+            }
+
+            }
+
+
+        }
+    if rec(pattern, &mut relationscopy,id) {
+        Some(relationscopy)
+
+
+    }
+    else {
+
+        None
+    }
+    }
+
+
+
+///takes 
+pub fn unify(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
+    let mut copy = pattern; 
+   
+    if let Some(relations )= matchandassigns(pattern,target){
+
+        return Some(relations)
+
+    }
+    // :D
+    
+    else if copy.same_type(&Node::Variable('a'))==false || copy.same_type(&Node::Number(0))==false{
+        let mut result:Option<HashMap<char,Node>>;
+        
+            match copy {
+            /*Node::Number(value) => {
+
+            }
+            Node::Variable() => {
+
+
+
+            }*/
+                Node::BinaryOp(lhs,op,rhs) => {
+                    if let Some(relations) = unify(lhs,target){
+                        if let Some(relations) = free(rhs,relations){
+                            return Some(relations)
+                        }
+                        else{
+                            return None
+                        }
+                        
+                    }
+                    else if let Some(relations) = unify(rhs,target){
+                        if let Some(relations) = free(lhs,relations){
+                            return Some(relations)
+                        }
+                        else{
+                            return None
+                        }
+
+
+                    }
+                    else {
+                       return None
+
+
+                    }
+
+                }   
+                Node::UnaryOp(op,rhs ) => {
+                    if let Some(relations) = unify(rhs,target){
+                        return Some(relations)
+
+                    }
+                    else {
+                        return None
+                    }
+
+
+                }
+                _ => {
+                    return None
+
+
+                }
+            }
+
+
+
+        
+
+    }
+    else {
+        return None
+    }
+
+
 }

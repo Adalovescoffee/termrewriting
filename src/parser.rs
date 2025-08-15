@@ -145,7 +145,8 @@ impl Parser {
             if let TokenType::Integer(value) = self.current_token{
                 self.expect_and_advance(TokenType::Integer(value))?;
                 //println!("{}",-value);
-                Ok((Node::Number(-value),0))
+               
+                Ok((Node::UnaryOp(Operator::Subtract,Box::new(Node::Number(value))),1))// wtf do i consider this as an op wtf :[ 
 
             }
             else if let TokenType::Minus = self.current_token{
