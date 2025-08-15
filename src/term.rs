@@ -389,10 +389,12 @@ pub fn countsize(node:&Node)->i16{
 pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{  // this is called basic unification apparently
     let mut relations = HashMap::new();
     pub fn matchandbinds(pattern:&Node, target:&Node, relations:&mut HashMap<char,Node>)->bool{ 
-            if pattern.same_type(target)== false{
+            // i really wonder if this is necessary since this is false?? 
+            /*if pattern.same_type(target)== false{
                 return false
 
             }
+            */
             if let Node::Variable(pattern_char) = pattern{
                 if let Some(prev) = relations.get(pattern_char){
                 
@@ -411,12 +413,14 @@ pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
             match pattern {
                 Node::Number(value) => {
                     *value == target.get_number().unwrap()
-
+    
 
              }  
                 Node::UnaryOp(_,prhs )=> {
                     if let Node::UnaryOp(_,trhs ) = target {
+                        
                         let rmatch = matchandbinds(prhs,trhs,relations);
+                    
                         if rmatch == false {return false}
                         return true 
 
@@ -611,10 +615,13 @@ mod tests {
         println!("Term A: {}, > term B: {}",term_a.term,term_b.term);
         assert!(term_b < term_a, "Term B should be less than Term A using '<' operator");
     }
+
+
+
     #[test]
     fn subsumptionunificationtest(){
-         let t1 = from_str("-a + a ").unwrap();
-        let t2 = from_str("(x+y)+z").unwrap();
+         let t1 = from_str("x + 0   ").unwrap();
+        let t2 = from_str("-x + x").unwrap();
         
         let term1 = BySubsumption(&t1);
         let term2 = BySubsumption(&t2);
@@ -678,7 +685,7 @@ pub fn free(pattern:&Node,relations:HashMap<char,Node>)->Option<HashMap<char,Nod
             }
             Node::Number(number) => {
                 // wtf do i do here continue ? 
-                
+                    
                 return false; 
 
             }
