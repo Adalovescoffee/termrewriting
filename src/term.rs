@@ -618,7 +618,9 @@ mod tests {
         
         let term1 = BySubsumption(&t1);
         let term2 = BySubsumption(&t2);
-        println!("{:?}",unify(&t2.term, &t1.term));
+
+
+        println!("Hashmap for (-a +a -> (x+y)+z ) is {:?}",unify(&t2.term, &t1.term));
         let boolt = term1 >term2;
         //assert_eq!(boolt,true)
 
@@ -627,6 +629,78 @@ mod tests {
 
     }
 }
+///takes a pattern as well as a relations related to the pattern, fills the missing variables from the pattern with identity! 
+pub fn free(pattern:&Node,relations:HashMap<char,Node>)->Option<HashMap<char,Node>>{
+    //let mut relationscopy = relations; 
+    let mut id = 0;
+    let mut relationscopy:HashMap<char,Node> = relations.clone();
+    pub fn rec(pattern:&Node,relations:&mut HashMap<char,Node>,mut id:i64)-> bool{
+        // this changes depending on the op 
+        // 1 => * 
+        // 0 => + 
+        match pattern {
+            Node::Variable(char) => {
+                if let Some(prev) = relations.get(char){
+                    
+                        return prev == pattern; 
+                }    
+                else {
+                    relations.insert(*char,Node::Number(id)); 
+                    return true;  
+                
+                }
+
+
+            }
+            Node::BinaryOp(lhs,op,rhs) => {
+                if op== &Operator::Add || op == &Operator::Subtract {
+                    id = 0;
+                    rec(lhs,relations,id) && rec(rhs,relations,id)
+                }
+                else if op == &Operator::Multiply || op == &Operator::Divide {
+
+                    id = 1; 
+                    rec(lhs,relations,id) && rec(rhs,relations,id)
+
+                }
+                else {
+                    return false;
+
+                }
+
+
+            }
+            Node::UnaryOp(op,rhs) => {
+                // for now the only unaryop is minus so 
+                id = 0;
+                rec(rhs,relations,id)
+
+            }
+            Node::Number(number) => {
+                // wtf do i do here continue ? 
+                
+                return false; 
+
+            }
+
+            }
+
+
+        }
+    if rec(pattern, &mut relationscopy,id) {
+        Some(relationscopy)
+
+
+    }
+    else {
+
+        None
+    }
+    }
+
+
+
+///takes 
 pub fn unify(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
     let mut copy = pattern; 
    
@@ -651,10 +725,21 @@ pub fn unify(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
             }*/
                 Node::BinaryOp(lhs,op,rhs) => {
                     if let Some(relations) = unify(lhs,target){
-                        return Some(relations)
+                        if let Some(relations) = free(rhs,relations){
+                            return Some(relations)
+                        }
+                        else{
+                            return None
+                        }
+                        
                     }
                     else if let Some(relations) = unify(rhs,target){
-                        return Some(relations)
+                        if let Some(relations) = free(lhs,relations){
+                            return Some(relations)
+                        }
+                        else{
+                            return None
+                        }
 
 
                     }
