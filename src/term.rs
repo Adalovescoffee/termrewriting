@@ -1,6 +1,7 @@
 use core::fmt;
 use std::collections::HashMap;
 use std::cmp::Ordering;
+use std::hash::Hash;
 
 //use std::vec;
 use crate::lexer::Lexer;
@@ -164,6 +165,7 @@ pub fn rewriteby(&self, law:((&Node,i16),(&Node,i16)))-> Term{
     let (rhs_node,rhs_size) = erhs;
     fn rec(targetnode:&Node,rule_pattern:&Node,subst_pattern:&Node)->(Node,i16){
         if let Some(relations) = matchandassigns(rule_pattern,targetnode ){
+            println!("inside rewrite if {:?}", relations);
             return nodesubst(subst_pattern,&relations);
 
 
@@ -172,7 +174,7 @@ pub fn rewriteby(&self, law:((&Node,i16),(&Node,i16)))-> Term{
             Node::BinaryOp(lhs,op,rhs) => {
                 let (new_lhs,lhsize) = rec(lhs,rule_pattern,subst_pattern);
                 let (new_rhs,rhsize) = rec(rhs,rule_pattern,subst_pattern);
-                
+                println!("new_lhs,new_rhs, {:?}, {:?}",new_lhs,new_rhs);
                 
                 (Node::BinaryOp(Box::new(new_lhs),*op,Box::new(new_rhs)),lhsize + rhsize +1) 
 
@@ -218,9 +220,7 @@ pub fn subsumes(&self, target:&Node)->bool{  // this is called basic unification
                     return true;
                 }
             }
-            if !pattern.same_type(target){
-                return false;
-            }
+            
             match pattern {
                 Node::Number(value) => {
                     *value == target.get_number().unwrap()
@@ -389,12 +389,10 @@ pub fn countsize(node:&Node)->i16{
 pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{  // this is called basic unification apparently
     let mut relations = HashMap::new();
     pub fn matchandbinds(pattern:&Node, target:&Node, relations:&mut HashMap<char,Node>)->bool{ 
-            // i really wonder if this is necessary since this is false?? 
-            /*if pattern.same_type(target)== false{
+            if pattern.same_type(target)== false{
                 return false
 
             }
-            */
             if let Node::Variable(pattern_char) = pattern{
                 if let Some(prev) = relations.get(pattern_char){
                 
@@ -413,14 +411,12 @@ pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
             match pattern {
                 Node::Number(value) => {
                     *value == target.get_number().unwrap()
-    
+
 
              }  
                 Node::UnaryOp(_,prhs )=> {
                     if let Node::UnaryOp(_,trhs ) = target {
-                        
                         let rmatch = matchandbinds(prhs,trhs,relations);
-                    
                         if rmatch == false {return false}
                         return true 
 
@@ -616,7 +612,8 @@ mod tests {
         assert!(term_b < term_a, "Term B should be less than Term A using '<' operator");
     }
 
-
+    #[test]
+    
 
     #[test]
     fn subsumptionunificationtest(){
@@ -627,7 +624,7 @@ mod tests {
         let term2 = BySubsumption(&t2);
 
 
-        println!("Hashmap for (-a +a -> (x+y)+z ) is {:?}",unify(&t2.term, &t1.term));
+        println!("Hashmap for (-a +a -> (x+y)+z ) is {:?}",matchandassigns(&t2.term, &t1.term));
         let boolt = term1 >term2;
         //assert_eq!(boolt,true)
 
@@ -636,6 +633,16 @@ mod tests {
 
     }
 }
+/*pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
+    let mut relations:HashMap<char,Node> = HashMap::new();
+    pub fn fifi(pattern:&Node,target:&Node,relations:&mut HashMap<char,Node>){
+
+
+    }
+
+
+}*/
+
 ///takes a pattern as well as a relations related to the pattern, fills the missing variables from the pattern with identity! 
 pub fn free(pattern:&Node,relations:HashMap<char,Node>)->Option<HashMap<char,Node>>{
     //let mut relationscopy = relations; 

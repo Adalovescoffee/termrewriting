@@ -12,6 +12,7 @@ pub enum Node{
 
 
 impl Node{
+
   /// check if two nodes are of the same types 
   pub fn same_type(&self, other:&Node) -> bool { // i think actually that this is useless but i might be wrong
     match (self, other) {
