@@ -405,9 +405,9 @@ pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
                     return true;
                 }
             }
-            if !pattern.same_type(target){
+            /*if !pattern.same_type(target){
                 return false;
-            }
+            }*/
             match pattern {
                 Node::Number(value) => {
                     *value == target.get_number().unwrap()
@@ -415,6 +415,7 @@ pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
 
              }  
                 Node::UnaryOp(_,prhs )=> {
+                    // i have a feeling this if statement is useless actually since sametype already does that 
                     if let Node::UnaryOp(_,trhs ) = target {
                         let rmatch = matchandbinds(prhs,trhs,relations);
                         if rmatch == false {return false}
@@ -612,7 +613,6 @@ mod tests {
         assert!(term_b < term_a, "Term B should be less than Term A using '<' operator");
     }
 
-    #[test]
     
 
     #[test]
@@ -632,16 +632,142 @@ mod tests {
 
 
     }
-}
-/*pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
-    let mut relations:HashMap<char,Node> = HashMap::new();
-    pub fn fifi(pattern:&Node,target:&Node,relations:&mut HashMap<char,Node>){
+    #[test]
+    fn unificationvariablenumber(){
+
+        let t1 = from_str("x").unwrap();
+        let t2 = from_str("0").unwrap();
+        println!("x,0 {:?}",unification(&t2.term,&t1.term));
+        println!("x,y:{:?}",unification(&t1.term,&t2.term));
+
+        // this works 
+    }
+    #[test]
+    fn unificationvariables(){
+
+        let t1 = from_str("x").unwrap();
+        let t2 = from_str("y").unwrap();
+        println!("x,y:{:?}",unification(&t2.term,&t1.term));
 
 
     }
+    #[test]
+    fn unificationunaryopvariable(){
+        let t1 = from_str("-x + x").unwrap();
+        let t2 = from_str("a + 0 ").unwrap();
+        println!("unification of -x + x and a + 0 leads to :{:?}",unification(&t2.term,&t1.term));
 
 
-}*/
+    }
+}
+// idk man leave me alone i'm tired 
+// okay we have an issue here i imagine which is the fact if a variable is free it won't appear and that needs to change soon 
+pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
+    let mut relations:HashMap<char,Node> = HashMap::new();
+    pub fn fifi(pattern:&Node,target:&Node,relations:&mut HashMap<char,Node>)->bool{
+        let mut b:bool ; 
+        if pattern.same_type(target)== false && target.same_type(pattern)==false {
+            return false; 
+
+        }        
+        else if pattern.same_type(target)==true {
+            if let Node::Variable(pattern_char) = pattern{
+                if let Some(prev) = relations.get(pattern_char){
+                    
+                        
+                        return prev == target; // i feel like i need to only return if it's false and do smt else when it's true maybe i'm wrong :/
+                }  
+
+                else {
+                        // here i'm asking if both are variable and therefore i'm adding both a => b and b=>a :3 
+                    if let Node::Variable(target_char) = target{
+                        relations.insert(*pattern_char,Node::Variable(*target_char));
+                        relations.insert(*target_char,Node::Variable(*pattern_char));
+                        return  true;
+
+                        }
+                        else {
+                            relations.insert(*pattern_char,target.clone());
+                            return true;
+
+                        }
+
+                    }    
+
+                
+                }
+
+
+
+            
+            match pattern {
+
+                Node::Number(value)=> {
+                    return(*value == target.get_number().unwrap());
+
+
+                }
+                Node::UnaryOp(_,prhs) => {
+                    if let Node::UnaryOp(_,trhs) = target {
+                        let rmatch = fifi(prhs,trhs,relations);
+                        return rmatch;
+
+                    }
+                    else {
+                        return false;// i was wondering if i reverse pattern, target here but nah 
+                    }
+                
+
+
+
+                }
+
+                Node::BinaryOp(plhs,_,prhs) => {
+                    if let Node::BinaryOp(tlhs,_,trhs) = target { 
+                        let lmatch = fifi(plhs,tlhs,relations);
+                        if lmatch == false {return false;}
+                        let rmatch = fifi(prhs,trhs,relations);
+                        if rmatch == false {return false;}
+                        return true; 
+
+
+
+
+                    }
+                    else {
+                        return false; 
+                    }
+
+
+
+
+                }
+                _ => {return false; }// i guess this is the case for variable?? which i mean fair 
+
+            }
+        }
+
+
+
+        
+        else if target.same_type(pattern) == true {
+            return fifi(target,pattern,relations);
+
+
+        }
+        else {
+            return false; 
+        }
+    
+    }
+    if fifi(pattern,target,&mut relations){
+        Some(relations)
+    }
+    else {
+        Some(relations)
+    }
+
+}
 
 ///takes a pattern as well as a relations related to the pattern, fills the missing variables from the pattern with identity! 
 pub fn free(pattern:&Node,relations:HashMap<char,Node>)->Option<HashMap<char,Node>>{
