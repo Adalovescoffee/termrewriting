@@ -684,7 +684,7 @@ mod tests {
     }
 }
 
-pub fn variable (node:&Node)-> Vec<char> {
+pub fn variable(node:&Node)-> Vec<char> {
     let mut variables:Vec<char> = Vec::new();
     fn rec(node:&Node,mut vars:Vec<char>)->Vec<char>{
         match node {
@@ -746,21 +746,35 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
                 else {
                         // here i'm asking if both are variable and therefore i'm adding both a => b and b=>a :3 
                     if let Node::Variable(target_char) = target{
-                        // if
-                        if chars.contains(target_char) {
-
-
-
-
-                        }
+                        // if they're not already there maybe? but like there is no way i think? (DANGER NEEDS THINKING )
+                        chars.push(*pattern_char); 
+                        chars.push(*target_char);
                         relations.insert(*pattern_char,Node::Variable(*target_char));
                         relations.insert(*target_char,Node::Variable(*pattern_char));
                         return  true;
 
                         }
                         else {
+                            let mut m = variable(target); 
+                            // if all ms are attached to smt already i guess ? 
+                            let mut bool:bool = true;
+                            for k in m {
+                                if !relations.contains_key(&k){
+                                    bool = false;
+                                }
+                                
+
+
+                            }
+                            if bool {
+                                let mut node = nodesubst(target, relations); 
+                                relations.insert(*pattern_char,node.0);
+                                return true; 
+
+                            }
+                            else {
                             relations.insert(*pattern_char,target.clone());
-                            return true;
+                            return true;}
 
                         }
 
