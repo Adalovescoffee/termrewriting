@@ -652,20 +652,85 @@ mod tests {
 
     }
     #[test]
-    fn unificationunaryopvariable(){
+    fn unificationbinaryop(){
         let t1 = from_str("-x + x").unwrap();
         let t2 = from_str("a + 0 ").unwrap();
-        println!("unification of -x + x and a + 0 leads to :{:?}",unification(&t2.term,&t1.term));
+        println!("unification of -x + x and a + 0 leads to :{:?}",unification(&t2.term,&t1.term));}
+    #[test]
+    fn unificationmoreshenanigans(){
+        let t1 = from_str("(x + y) * (z - 5)").unwrap();
+        let t2 = from_str("(3 + 4) * (w - 5)").unwrap();
+        println!("unification of (x + y) * (z - 5) and (3 + 4) * (w - 5) leads to :{:?}",unification(&t2.term,&t1.term));
+
+
+    
+    }
+    #[test]
+    fn simplevariablescheck(){
+
+        let t1 = from_str("(x+y)").unwrap();
+        println!("the variables here are : {:?}",variable(&t1.term))
 
 
     }
+
+    #[test]
+    fn variablescheckcomplicated(){
+
+        let t1 = from_str("-(-(a+0)+y)+ b").unwrap();
+        println!("the variables here are : {:?}",variable(&t1.term))
+
+
+    }
+}
+
+pub fn variable (node:&Node)-> Vec<char> {
+    let mut variables:Vec<char> = Vec::new();
+    fn rec(node:&Node,mut vars:Vec<char>)->Vec<char>{
+        match node {
+            Node::Number(_) => {return vars;}
+
+            Node::Variable(char) => {
+                if vars.contains(char)==false {
+                    vars.push(*char);
+                    return vars 
+                }
+                else {
+                    return vars
+
+
+                }
+
+            }
+            Node::BinaryOp(lhs,_ ,rhs ) => {
+                vars = rec(lhs,vars);
+                vars = rec(rhs,vars);
+                return vars 
+
+            }
+            Node::UnaryOp(_,rhs  ) => {
+                vars = rec(rhs,vars);
+                return vars 
+
+
+            }
+
+
+        }
+    
+    }
+    return rec(node,variables)
+
+
+
 }
 // idk man leave me alone i'm tired 
 // okay we have an issue here i imagine which is the fact if a variable is free it won't appear and that needs to change soon 
 pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
     let mut relations:HashMap<char,Node> = HashMap::new();
     pub fn fifi(pattern:&Node,target:&Node,relations:&mut HashMap<char,Node>)->bool{
-        let mut b:bool ; 
+        // okay now i need to have smt like if a variable is related to another variable then add the char to a list, and if that variable gets related to smt else 
+        let mut chars:Vec<char> = Vec::new();
         if pattern.same_type(target)== false && target.same_type(pattern)==false {
             return false; 
 
@@ -681,6 +746,13 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
                 else {
                         // here i'm asking if both are variable and therefore i'm adding both a => b and b=>a :3 
                     if let Node::Variable(target_char) = target{
+                        // if
+                        if chars.contains(target_char) {
+
+
+
+
+                        }
                         relations.insert(*pattern_char,Node::Variable(*target_char));
                         relations.insert(*target_char,Node::Variable(*pattern_char));
                         return  true;
@@ -764,10 +836,11 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
         Some(relations)
     }
     else {
-        Some(relations)
+        None 
     }
 
 }
+
 
 ///takes a pattern as well as a relations related to the pattern, fills the missing variables from the pattern with identity! 
 pub fn free(pattern:&Node,relations:HashMap<char,Node>)->Option<HashMap<char,Node>>{
