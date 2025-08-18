@@ -666,6 +666,17 @@ mod tests {
     
     }
     #[test]
+    fn unificationhard (){
+    let t1 = from_str("(x + 2) * z").unwrap();
+        let t2 = from_str("(y + y) *3").unwrap();
+        println!("unification of (x + 2) *z and (y + y) *( 3 + a) leads to :{:?}",unification(&t2.term,&t1.term));
+
+
+            
+
+
+    }
+    #[test]
     fn simplevariablescheck(){
 
         let t1 = from_str("(x+y)").unwrap();
@@ -728,9 +739,10 @@ pub fn variable(node:&Node)-> Vec<char> {
 // okay we have an issue here i imagine which is the fact if a variable is free it won't appear and that needs to change soon 
 pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
     let mut relations:HashMap<char,Node> = HashMap::new();
-    pub fn fifi(pattern:&Node,target:&Node,relations:&mut HashMap<char,Node>)->bool{
+    let mut chars:Vec<char> = Vec::new();
+    pub fn fifi(pattern:&Node,target:&Node,relations:&mut HashMap<char,Node>,chars:&mut Vec<char>)->bool{
         // okay now i need to have smt like if a variable is related to another variable then add the char to a list, and if that variable gets related to smt else 
-        let mut chars:Vec<char> = Vec::new();
+       
         if pattern.same_type(target)== false && target.same_type(pattern)==false {
             return false; 
 
@@ -757,18 +769,24 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
                         else {
                             let mut m = variable(target); 
                             // if all ms are attached to smt already i guess ? 
+                            
                             let mut bool:bool = true;
-                            for k in m {
+                            /*for k in m {
                                 if !relations.contains_key(&k){
                                     bool = false;
                                 }
                                 
 
 
-                            }
+                            }*/
                             if bool {
-                                let mut node = nodesubst(target, relations); 
-                                relations.insert(*pattern_char,node.0);
+                             //   let mut node = nodesubst(target, relations); 
+                                //  println!("node substitution from {:?} is {:?} and the variables that have stuff in them are: {:?}",target,node.0,chars);
+                                relations.insert(*pattern_char,target.clone());
+                                if m!= []{
+                                 chars.push(*pattern_char);
+                                }
+                               
                                 return true; 
 
                             }
@@ -795,7 +813,7 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
                 }
                 Node::UnaryOp(_,prhs) => {
                     if let Node::UnaryOp(_,trhs) = target {
-                        let rmatch = fifi(prhs,trhs,relations);
+                        let rmatch = fifi(prhs,trhs,relations,chars);
                         return rmatch;
 
                     }
@@ -810,9 +828,9 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
 
                 Node::BinaryOp(plhs,_,prhs) => {
                     if let Node::BinaryOp(tlhs,_,trhs) = target { 
-                        let lmatch = fifi(plhs,tlhs,relations);
+                        let lmatch = fifi(plhs,tlhs,relations,chars);
                         if lmatch == false {return false;}
-                        let rmatch = fifi(prhs,trhs,relations);
+                        let rmatch = fifi(prhs,trhs,relations,chars);
                         if rmatch == false {return false;}
                         return true; 
 
@@ -837,7 +855,7 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
 
         
         else if target.same_type(pattern) == true {
-            return fifi(target,pattern,relations);
+            return fifi(target,pattern,relations,chars);
 
 
         }
@@ -846,7 +864,18 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
         }
     
     }
-    if fifi(pattern,target,&mut relations){
+    if fifi(pattern,target,&mut relations,&mut chars){
+        for c in chars {
+        if let Some(node) =relations.remove(&c){
+            let (node,size) = nodesubst(&node, &relations);
+            relations.insert(c,node);
+
+        }            
+
+
+
+        }
+        //println!("current variables that are assigned to smt are {:?}",chars);
         Some(relations)
     }
     else {
