@@ -739,7 +739,7 @@ mod tests {
     fn unificationmoreshenanigans(){
         let t1 = from_str("(x + y) * (z - 5)").unwrap();
         let t2 = from_str("(3 + 4) * (w - 5)").unwrap();
-        println!("unification of (x + y) * (z - 5) and (3 + 4) * (w - 5) leads to :{:?}",unification(&t2.term,&t1.term));
+       println!("unification of (x + y) * (z - 5) and (3 + 4) * (w - 5) leads to :{:?}",unification(&t2.term,&t1.term));
 
 
     
@@ -748,7 +748,7 @@ mod tests {
     fn unificationhard (){
     let t1 = from_str("(x + 2) * z").unwrap();
         let t2 = from_str("(y + y   ) *3").unwrap();
-        println!("unification of (x + 2) *z and (y + y) *( 3 + a) leads to :{:?}",unification(&t2.term,&t1.term));
+       println!("unification of (x + 2) *z and (y + y) *( 3 + a) leads to :{:?}",unification(&t2.term,&t1.term));
 
 
             
@@ -772,7 +772,15 @@ mod tests {
 
 
     }
+    #[test]
+    fn occursvariable(){
+        let t1 = from_str("(x +a) + y").unwrap().term;
+        println!("x+y have the variable x in it :  {:?}",occurs('x', &t1));
+
+
+    }
 }
+
 
 pub fn variable(node:&Node)-> Vec<char> {
     let mut variables:Vec<char> = Vec::new();
@@ -816,6 +824,20 @@ pub fn variable(node:&Node)-> Vec<char> {
 }
 // idk man leave me alone i'm tired 
 // okay we have an issue here i imagine which is the fact if a variable is free it won't appear and that needs to change soon 
+pub fn occurs( variable_char:char,node:&Node)-> bool{
+    let chars = variable(node);
+    if chars.contains(&variable_char) {
+
+        return true 
+    }
+    else {
+
+        return false 
+    }
+
+
+
+}
 pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
     let mut relations:HashMap<char,Node> = HashMap::new();
     let mut chars:Vec<char> = Vec::new();
@@ -880,6 +902,7 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
                         // if they're not already there maybe? but like there is no way i think? (DANGER NEEDS THINKING )
                         chars.push(*pattern_char); 
                         chars.push(*target_char);
+                       
                         relations.insert(*pattern_char,Node::Variable(*target_char));
                         relations.insert(*target_char,Node::Variable(*pattern_char));
                         return  true;
@@ -901,17 +924,26 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
                             if bool {
                              //   let mut node = nodesubst(target, relations); 
                                 //  println!("node substitution from {:?} is {:?} and the variables that have stuff in them are: {:?}",target,node.0,chars);
+                                if occurs(*pattern_char,&target){
+                                    return false; 
+                                }
+                                else {
                                 relations.insert(*pattern_char,target.clone());
                                 if m!= []{
                                  chars.push(*pattern_char);
                                 }
                                
                                 return true; 
+                            }
+                            }
 
+                            else {
+                            if occurs(*pattern_char,&target){
+                                return false;
                             }
                             else {
                             relations.insert(*pattern_char,target.clone());
-                            return true;}
+                            return true;}}
 
                         }
 
@@ -987,7 +1019,11 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
         for c in chars {
         if let Some(node) =relations.remove(&c){
             let (node,size) = nodesubst(&node, &relations);
-            relations.insert(c,node);
+            if occurs(c,&node) {
+                break // tbh idk what i should od here 
+            }
+            else {
+            relations.insert(c,node);}
 
         }            
 
