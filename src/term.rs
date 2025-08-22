@@ -1040,14 +1040,21 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
     }
     if fifi(pattern,target,&mut relations,&mut chars){
         for c in chars {
+       
+        
         if let Some(node) =relations.remove(&c){
-            let (node,size) = nodesubst(&node, &relations);
-            if occurs(c,&node) {
-                break // tbh idk what i should od here 
+            if let Node::Variable(char) = node{
+                relations.insert(c,node);
             }
             else {
-            relations.insert(c,node);}
-            println!("current hash is {:?}",relations);
+                let (node,size) = nodesubst(&node, &relations);
+                if occurs(c,&node) {
+                    break // tbh idk what i should od here 
+                }
+                else {
+                relations.insert(c,node);}
+                println!("current hash is {:?}",relations);
+            }
         }            
 
 
