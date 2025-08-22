@@ -747,7 +747,7 @@ mod tests {
     #[test]
     fn unificationhard (){
     let t1 = from_str("(x + 2) * z").unwrap();
-        let t2 = from_str("(y + y   ) *3").unwrap();
+    let t2 = from_str("(y + y   ) *3").unwrap();
        println!("unification of (x + 2) *z and (y + y) *( 3 + a) leads to :{:?}",unification(&t2.term,&t1.term));
 
 
@@ -838,6 +838,7 @@ pub fn occurs( variable_char:char,node:&Node)-> bool{
 
 
 }
+
 pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
     let mut relations:HashMap<char,Node> = HashMap::new();
     let mut chars:Vec<char> = Vec::new();
@@ -863,9 +864,15 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
 
                     }*/
                     
-                    else if let Node::Variable(prev_char) = prev {
-                    
+                    else if let Node::Variable(prev_char)   = prev {
+                        if let Node::Number(target_number) = target {
+                            relations.remove(pattern_char);
+                            relations.insert(*pattern_char,Node::Number(*target_number));
+                            return true; 
 
+
+                        }
+                    
                         
                         fifi(&  prev,target,relations,chars);
 
@@ -873,9 +880,10 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
                         
                     }
                     else if let Node::Variable(target_char) = target {
+
                         fifi(target,&prev,relations,chars);
 
-
+                        // this is where the issue is , basically 
 
                     }
                     else {// aka when what i'm binding to 
