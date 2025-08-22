@@ -748,7 +748,7 @@ mod tests {
     fn unificationhard (){
     let t1 = from_str("(x + 2) * z").unwrap();
     let t2 = from_str("(y + y   ) *3").unwrap();
-       println!("unification of (x + 2) *z and (y + y) *( 3 + a) leads to :{:?}",unification(&t2.term,&t1.term));
+       println!("unification of (x + 2) *z and (y + y) * 3  leads to :{:?}",unification(&t2.term,&t1.term));
 
 
             
@@ -868,6 +868,7 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
                         if let Node::Number(target_number) = target {
                             relations.remove(pattern_char);
                             relations.insert(*pattern_char,Node::Number(*target_number));
+                            println!("current hash is {:?}",relations);
                             return true; 
 
 
@@ -913,6 +914,7 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
                        
                         relations.insert(*pattern_char,Node::Variable(*target_char));
                         relations.insert(*target_char,Node::Variable(*pattern_char));
+                        println!("current hash is {:?}",relations);
                         return  true;
 
                         }
@@ -937,6 +939,7 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
                                 }
                                 else {
                                 relations.insert(*pattern_char,target.clone());
+                                println!("current hash is {:?}",relations);
                                 if m!= []{
                                  chars.push(*pattern_char);
                                 }
@@ -951,6 +954,7 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
                             }
                             else {
                             relations.insert(*pattern_char,target.clone());
+                            println!("current hash is {:?}",relations);
                             return true;}}
 
                         }
@@ -1032,7 +1036,7 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
             }
             else {
             relations.insert(c,node);}
-
+            println!("current hash is {:?}",relations);
         }            
 
 
