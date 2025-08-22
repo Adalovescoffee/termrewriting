@@ -756,6 +756,18 @@ mod tests {
 
     }
     #[test]
+    fn chatgeppittysaidthiswouldntworkbutitdidehehe(){
+        let t1 = from_str("x ").unwrap();
+        let t2 = from_str("y + y ").unwrap();
+       println!("unification of x and y + y  leads to :{:?}",unification(&t2.term,&t1.term));   
+    }
+    #[test]
+    fn chatgeppittysaidthiswouldntworkbutitdidehehehe(){
+        let t1 = from_str("x + x").unwrap();
+        let t2 = from_str("(y + 1) + (3 + 1)").unwrap();
+       println!("unification of x+x and (y + 1) + (3 + 1)  leads to :{:?}",unification(&t2.term,&t1.term));   
+    }
+    #[test]
     fn simplevariablescheck(){
 
         let t1 = from_str("(x+y)").unwrap();
@@ -889,8 +901,7 @@ pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
                     }
                     else {// aka when what i'm binding to 
                         
-                        println!("{:?},{:?}",prev,target);
-                        return false; 
+                        return fifi(&prev, target, relations, chars);
                         // fifi(&prev,target,relations,chars);
 
                     }
