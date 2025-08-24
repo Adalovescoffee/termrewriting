@@ -2,7 +2,7 @@ use core::fmt;
 use std::collections::HashMap;
 use std::cmp::Ordering;
 use std::hash::Hash;
-
+use std::collections::HashSet;
 //use std::vec;
 use crate::lexer::Lexer;
 use crate::parser::{ Node, Operator,Parser,ParserError};
@@ -791,6 +791,14 @@ mod tests {
 
 
     }
+    #[test]
+    fn ultimateunificationtest(){
+        let t1 = from_str("-a + a").unwrap();
+        let t2 = from_str("(x+y)").unwrap();
+       println!("unification of -a + a and (x+y)+z  leads to :{:?}",unification(&t2.term,&t1.term)); 
+
+
+    }
 }
 
 
@@ -834,6 +842,28 @@ pub fn variable(node:&Node)-> Vec<char> {
 
 
 }
+fn find(c: char, relations: &HashMap<char, Node>) -> Option<Node> {
+    let mut visited = HashSet::new();
+    let mut current = c;
+    
+    while let Some(node) = relations.get(&current) {
+        if visited.contains(&current) {
+            return None; // detect cycle 
+        }
+        visited.insert(current);
+        
+        match node {
+            Node::Variable(next_char) => {
+                current = *next_char;
+            }
+            _ => return Some(node.clone()),
+        }
+    }
+    
+    Some(Node::Variable(current))
+}
+
+
 // idk man leave me alone i'm tired 
 // okay we have an issue here i imagine which is the fact if a variable is free it won't appear and that needs to change soon 
 pub fn occurs( variable_char:char,node:&Node)-> bool{
@@ -850,227 +880,118 @@ pub fn occurs( variable_char:char,node:&Node)-> bool{
 
 
 }
+pub fn unification(pattern: &Node, target: &Node) -> Option<HashMap<char, Node>> {
+    let mut relations: HashMap<char, Node> = HashMap::new();
+    let mut chars: HashSet<char> = HashSet::new();
 
-pub fn unification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
-    let mut relations:HashMap<char,Node> = HashMap::new();
-    let mut chars:Vec<char> = Vec::new();
-    pub fn fifi(pattern:&Node,target:&Node,relations:&mut HashMap<char,Node>,chars:&mut Vec<char>)->bool{
-        // okay now i need to have smt like if a variable is related to another variable then add the char to a list, and if that variable gets related to smt else 
-       
-        if pattern.same_type(target)== false && target.same_type(pattern)==false {
-            return false; 
+    fn fifi( pattern: &Node, target: &Node, relations: &mut HashMap<char, Node>, chars: &mut HashSet<char>, ) -> bool {
+        let root_pattern = match pattern {
+            Node::Variable(c) => find(*c, relations),
+            _ => Some(pattern.clone()),
+        };
 
-        }        
-       
-        else if pattern.same_type(target)==true {
-            if let Node::Variable(pattern_char) = pattern{
-                let prev = relations.get(pattern_char).cloned(); // ngl idk what i'm doing here 
-                if let Some(prev) = prev{
-                    if prev == *target {
-                        return true 
+        let root_target = match target {
+            Node::Variable(c) => find(*c, relations),
+            _ => Some(target.clone()),
+        };
 
-                    }
-                    /*else if let Node::Variable(prev_char) = prev{
-                        fifi(&prev,target,relations,chars);
-
-
-                    }*/
-                    
-                    else if let Node::Variable(prev_char)   = prev {
-                        if let Node::Number(target_number) = target {
-                            relations.remove(pattern_char);
-                            relations.insert(*pattern_char,Node::Number(*target_number));
-                            println!("current hash is {:?}",relations);
-                            return true; 
-
-
-                        }
-                    
-                        
-                        fifi(&  prev,target,relations,chars);
-
-
-                        
-                    }
-                    else if let Node::Variable(target_char) = target {
-
-                        fifi(target,&prev,relations,chars);
-
-                        // this is where the issue is , basically 
-
-                    }
-                    else {// aka when what i'm binding to 
-                        
-                        return fifi(&prev, target, relations, chars);
-                        // fifi(&prev,target,relations,chars);
-
-                    }
-                       
-                        
-
-
-                        
-
-
-                    
-                         // i feel like i need to only return if it's false and do smt else when it's true maybe i'm wrong :/
-                }  
-
-                else {
-                        // here i'm asking if both are variable and therefore i'm adding both a => b and b=>a :3 
-                    if let Node::Variable(target_char) = target{
-                        // if they're not already there maybe? but like there is no way i think? (DANGER NEEDS THINKING )
-                        chars.push(*pattern_char); 
-                        chars.push(*target_char);
-                       
-                        relations.insert(*pattern_char,Node::Variable(*target_char));
-                        relations.insert(*target_char,Node::Variable(*pattern_char));
-                        println!("current hash is {:?}",relations);
-                        return  true;
-
-                        }
-                        else {
-                            let mut m = variable(target); 
-                            // if all ms are attached to smt already i guess ? 
-                            
-                            let mut bool:bool = true;
-                            /*for k in m {
-                                if !relations.contains_key(&k){
-                                    bool = false;
-                                }
-                                
-
-
-                            }*/
-                            if bool {
-                             //   let mut node = nodesubst(target, relations); 
-                                //  println!("node substitution from {:?} is {:?} and the variables that have stuff in them are: {:?}",target,node.0,chars);
-                                if occurs(*pattern_char,&target){
-                                    return false; 
-                                }
-                                else {
-                                relations.insert(*pattern_char,target.clone());
-                                println!("current hash is {:?}",relations);
-                                if m!= []{
-                                 chars.push(*pattern_char);
-                                }
-                               
-                                return true; 
-                            }
-                            }
-
-                            else {
-                            if occurs(*pattern_char,&target){
-                                return false;
-                            }
-                            else {
-                            relations.insert(*pattern_char,target.clone());
-                            println!("current hash is {:?}",relations);
-                            return true;}}
-
-                        }
-
-                    }    
-
-                
-                }
-
-
-
-            
-            match pattern {
-
-                Node::Number(value)=> {
-                    return(*value == target.get_number().unwrap());
-
-
-                }
-                Node::UnaryOp(_,prhs) => {
-                    if let Node::UnaryOp(_,trhs) = target {
-                        let rmatch = fifi(prhs,trhs,relations,chars);
-                        return rmatch;
-
-                    }
-                    else {
-                        return false;// i was wondering if i reverse pattern, target here but nah 
-                    }
-                
-
-
-
-                }
-
-                Node::BinaryOp(plhs,_,prhs) => {
-                    if let Node::BinaryOp(tlhs,_,trhs) = target { 
-                        let lmatch = fifi(plhs,tlhs,relations,chars);
-                        if lmatch == false {return false;}
-                        let rmatch = fifi(prhs,trhs,relations,chars);
-                        if rmatch == false {return false;}
-                        return true; 
-
-
-
-
-                    }
-                    else {
-                        return false; 
-                    }
-
-
-
-
-                }
-                _ => {return false; }// i guess this is the case for variable?? which i mean fair 
-
-            }
+        if root_pattern.is_none() || root_target.is_none() {
+            return false;
         }
 
+        let root_pattern = root_pattern.unwrap();
+        let root_target = root_target.unwrap();
 
+        if root_pattern == root_target {
+            return true;
+        }
 
+        match (&root_pattern, &root_target) {
+            (Node::Variable(p_char), Node::Variable(t_char)) => {
+              
+                relations.insert(*p_char, Node::Variable(*t_char));
+                println!("hashmap is {:?}",relations);
+                chars.insert(*p_char);
+                //chars.insert(*t_char);
+                true
+            }
+            (Node::Variable(p_char), _) => {
+                if occurs(*p_char, &root_target) {
+                    false
+                } else {
+                    relations.insert(*p_char, root_target.clone());
+                    println!("hashmap is {:?}",relations);
+                    chars.insert(*p_char);
+                    true
+                }
+            }
+            (_, Node::Variable(t_char)) => fifi(&root_target, &root_pattern, relations, chars),
+            (Node::Number(p_val), Node::Number(t_val)) => p_val == t_val,
+            (Node::UnaryOp(p_op, p_rhs), Node::UnaryOp(t_op, t_rhs)) => {
+                p_op == t_op && fifi(p_rhs, t_rhs, relations, chars)
+            }
+            (Node::BinaryOp(p_lhs, p_op, p_rhs), Node::BinaryOp(t_lhs, t_op, t_rhs)) => {
+                p_op == t_op
+                    && fifi(p_lhs, t_lhs, relations, chars)
+                    && fifi(p_rhs, t_rhs, relations, chars)
+            }
+            _ => false,
+        }
+    }
+
+    if fifi(pattern, target, &mut relations, &mut chars) {
         
-        else if target.same_type(pattern) == true && pattern.same_type(target) == false{
-            return fifi(target,pattern,relations,chars);
-
-
-        }
-        else {
-            return false; 
-        }
-    
-    }
-    if fifi(pattern,target,&mut relations,&mut chars){
-        for c in chars {
-       
+        let mut substitution = HashMap::new();
         
-        if let Some(node) =relations.remove(&c){
-            if let Node::Variable(char) = node{
-                relations.insert(c,node);
-            }
-            else {
-                let (node,size) = nodesubst(&node, &relations);
-                if occurs(c,&node) {
-                    break // tbh idk what i should od here 
+        for c in &chars {
+            if let Some(mut root) = find(*c, &relations) {
+                
+                if let Node::Variable(d) = &root {
+                    if *d == *c {
+                        continue;
+                    }
+                    substitution.insert(*d,Node::Variable(*c));
                 }
-                else {
-                relations.insert(c,node);}
-                println!("current hash is {:?}",relations);
+                
+                substitution.insert(*c, nodesubst(&root, &relations).0);
+                
+                println!("hashmap is {:?}",relations);
             }
-        }            
+        }
+        
+        Some(substitution)
+    } else {
+        None
+    }
+}
+/// need to find a better name
+/* 
+pub fn compunification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
+    let mut freevariables:Vec<char> = Vec::new();
+    pub fn rec(pattern:&Node,target:&Node,freevariables:Vec<char>)->bool{
+        match (pattern,target) {
+            (Node:Variable)
+
+
 
 
 
         }
-        //println!("current variables that are assigned to smt are {:?}",chars);
-        Some(relations)
+
+
+
+
     }
-    else {
-        None 
-    }
+
 
 }
 
 
+*/
+
+
 ///takes a pattern as well as a relations related to the pattern, fills the missing variables from the pattern with identity! 
+/// don't think this is useful, will delete but who knows 
 pub fn free(pattern:&Node,relations:HashMap<char,Node>)->Option<HashMap<char,Node>>{
     //let mut relationscopy = relations; 
     let mut id = 0;
