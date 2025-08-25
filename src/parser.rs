@@ -12,6 +12,7 @@ pub enum Node{
 
 
 impl Node{
+
   /// check if two nodes are of the same types 
   pub fn same_type(&self, other:&Node) -> bool { // i think actually that this is useless but i might be wrong
     match (self, other) {
@@ -145,7 +146,8 @@ impl Parser {
             if let TokenType::Integer(value) = self.current_token{
                 self.expect_and_advance(TokenType::Integer(value))?;
                 //println!("{}",-value);
-                Ok((Node::Number(-value),0))
+               
+                Ok((Node::UnaryOp(Operator::Subtract,Box::new(Node::Number(value))),1))// wtf do i consider this as an op wtf :[ 
 
             }
             else if let TokenType::Minus = self.current_token{

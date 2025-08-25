@@ -1,7 +1,8 @@
 use core::fmt;
 use std::collections::HashMap;
 use std::cmp::Ordering;
-
+use std::hash::Hash;
+use std::collections::HashSet;
 //use std::vec;
 use crate::lexer::Lexer;
 use crate::parser::{ Node, Operator,Parser,ParserError};
@@ -164,6 +165,7 @@ pub fn rewriteby(&self, law:((&Node,i16),(&Node,i16)))-> Term{
     let (rhs_node,rhs_size) = erhs;
     fn rec(targetnode:&Node,rule_pattern:&Node,subst_pattern:&Node)->(Node,i16){
         if let Some(relations) = matchandassigns(rule_pattern,targetnode ){
+            println!("inside rewrite if {:?}", relations);
             return nodesubst(subst_pattern,&relations);
 
 
@@ -172,7 +174,7 @@ pub fn rewriteby(&self, law:((&Node,i16),(&Node,i16)))-> Term{
             Node::BinaryOp(lhs,op,rhs) => {
                 let (new_lhs,lhsize) = rec(lhs,rule_pattern,subst_pattern);
                 let (new_rhs,rhsize) = rec(rhs,rule_pattern,subst_pattern);
-                
+                println!("new_lhs,new_rhs, {:?}, {:?}",new_lhs,new_rhs);
                 
                 (Node::BinaryOp(Box::new(new_lhs),*op,Box::new(new_rhs)),lhsize + rhsize +1) 
 
@@ -218,9 +220,7 @@ pub fn subsumes(&self, target:&Node)->bool{  // this is called basic unification
                     return true;
                 }
             }
-            if !pattern.same_type(target){
-                return false;
-            }
+            
             match pattern {
                 Node::Number(value) => {
                     *value == target.get_number().unwrap()
@@ -382,7 +382,86 @@ pub fn countsize(node:&Node)->i16{
 
 
 }
+pub fn unificationd(pattern: &Node, target: &Node) -> Option<HashMap<char, Node>> {
+    let mut relations: HashMap<char, Node> = HashMap::new();
+    
+    fn unify_helper(pattern: &Node, target: &Node, relations: &mut HashMap<char, Node>) -> bool {
+        match (pattern, target) {
+            (Node::Variable(p_var), _) => {
+                if let Some(bound) = relations.get(p_var).cloned() {
+                    // If variable is already bound, unify with its value
+                    unify_helper(&bound, target, relations)
+                } else {
+                    // Occurs check to prevent infinite recursion
+                    if occurs(p_var, target, relations) {
+                        return false;
+                    }
+                    relations.insert(*p_var, target.clone());
+                    true
+                }
+            }
+            (_, Node::Variable(t_var)) => {
+                unify_helper(target, pattern, relations) // Swap and retry
+            }
+            (Node::Number(p_val), Node::Number(t_val)) => p_val == t_val,
+            (Node::BinaryOp(p_lhs, p_op, p_rhs), Node::BinaryOp(t_lhs, t_op, t_rhs)) => {
+                if p_op != t_op {
+                    return false;
+                }
+                unify_helper(p_lhs, t_lhs, relations) && unify_helper(p_rhs, t_rhs, relations)
+            }
+            (Node::UnaryOp(p_op, p_rhs), Node::UnaryOp(t_op, t_rhs)) => {
+                if p_op != t_op {
+                    return false;
+                }
+                unify_helper(p_rhs, t_rhs, relations)
+            }
+            _ => false,
+        }
+    }
 
+    fn occurs(var: &char, node: &Node, relations: &HashMap<char, Node>) -> bool {
+        match node {
+            Node::Variable(n_var) => {
+                if n_var == var {
+                    true
+                } else if let Some(bound) = relations.get(n_var) {
+                    occurs(var, bound, relations)
+                } else {
+                    false
+                }
+            }
+            Node::BinaryOp(lhs, _, rhs) => occurs(var, lhs, relations) || occurs(var, rhs, relations),
+            Node::UnaryOp(_, rhs) => occurs(var, rhs, relations),
+            _ => false,
+        }
+    }
+
+    if unify_helper(pattern, target, &mut relations) {
+        // Resolve all variable bindings
+        let mut changed = true;
+        while changed {
+            let mut updates = Vec::new();
+    for (key, value) in relations.iter() {
+        if let Node::Variable(v) = value {
+            if let Some(resolved) = relations.get(v) {
+                updates.push((key.clone(), resolved.clone()));
+                changed = true;
+            }
+        }
+    }
+    // Apply updates
+    for (key, resolved) in updates {
+        if let Some(value) = relations.get_mut(&key) {
+            *value = resolved;
+        }
+    }
+        }
+        Some(relations)
+    } else {
+        None
+    }
+}
 // this function matchand binds on a given like node, it doesn't move the node 
 // what i need rn is a function that takes this matchandbinds if it return a failure on a given node in the b 
 /// On a given node of the ast, it attempts to match if one node can be substituted (subsumpted?)
@@ -405,9 +484,9 @@ pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
                     return true;
                 }
             }
-            if !pattern.same_type(target){
+            /*if !pattern.same_type(target){
                 return false;
-            }
+            }*/
             match pattern {
                 Node::Number(value) => {
                     *value == target.get_number().unwrap()
@@ -415,6 +494,7 @@ pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
 
              }  
                 Node::UnaryOp(_,prhs )=> {
+                    // i have a feeling this if statement is useless actually since sametype already does that 
                     if let Node::UnaryOp(_,trhs ) = target {
                         let rmatch = matchandbinds(prhs,trhs,relations);
                         if rmatch == false {return false}
@@ -611,4 +691,453 @@ mod tests {
         println!("Term A: {}, > term B: {}",term_a.term,term_b.term);
         assert!(term_b < term_a, "Term B should be less than Term A using '<' operator");
     }
+
+    
+
+    #[test]
+    fn subsumptionunificationtest(){
+         let t1 = from_str("x + 0   ").unwrap();
+        let t2 = from_str("-x + x").unwrap();
+        
+        let term1 = BySubsumption(&t1);
+        let term2 = BySubsumption(&t2);
+
+
+        println!("Hashmap for (-a +a -> (x+y)+z ) is {:?}",matchandassigns(&t2.term, &t1.term));
+        let boolt = term1 >term2;
+        //assert_eq!(boolt,true)
+
+
+
+
+    }
+    #[test]
+    fn unificationvariablenumber(){
+
+        let t1 = from_str("x").unwrap();
+        let t2 = from_str("0").unwrap();
+        println!("x,0 {:?}",unification(&t2,&t1));
+        println!("x,0:{:?}",unification(&t1,&t2));
+
+        // this works 
+    }
+    #[test]
+    fn unificationvariables(){
+
+        let t1 = from_str("x").unwrap();
+        let t2 = from_str("y").unwrap();
+        println!("x,y:{:?}",unification(&t2,&t1));
+
+
+    }
+    #[test]
+    fn unificationbinaryop(){
+        let t1 = from_str("-x + x").unwrap();
+        let t2 = from_str("a + 0 ").unwrap();
+        println!("unification of -x + x and a + 0 leads to :{:?}",unification(&t2,&t1));}
+    #[test]
+    fn unificationmoreshenanigans(){
+        let t1 = from_str("(x + y) * (z - 5)").unwrap();
+        let t2 = from_str("(3 + 4) * (w - 5)").unwrap();
+       println!("unification of (x + y) * (z - 5) and (3 + 4) * (w - 5) leads to :{:?}",unification(&t2,&t1));
+
+
+    
+    }
+    #[test]
+    fn unificationhard (){
+    let t1 = from_str("(x + 2) * z").unwrap();
+    let t2 = from_str("(y + y   ) *3").unwrap();
+       println!("unification of (x + 2) *z and (y + y) * 3  leads to :{:?}",unification(&t2,&t1));
+
+
+            
+
+
+    }
+    #[test]
+    fn chatgeppittysaidthiswouldntworkbutitdidehehe(){
+        let t1 = from_str("x ").unwrap();
+        let t2 = from_str("y + y ").unwrap();
+       println!("unification of x and y + y  leads to :{:?}",unification(&t2,&t1));   
+    }
+    #[test]
+    fn chatgeppittysaidthiswouldntworkbutitdidehehehe(){
+        let t1 = from_str("x + x").unwrap();
+        let t2 = from_str("(y + 1) + (3 + 1)").unwrap();
+       println!("unification of x+x and (y + 1) + (3 + 1)  leads to :{:?}",unification(&t2,&t1));   
+    }
+    #[test]
+    fn simplevariablescheck(){
+
+        let t1 = from_str("(x+y)").unwrap();
+        println!("the variables here are : {:?}",variable(&t1.term))
+
+
+    }
+
+    #[test]
+    fn variablescheckcomplicated(){
+
+        let t1 = from_str("-(-(a+0)+y)+ b").unwrap();
+        println!("the variables here are : {:?}",variable(&t1.term))
+
+
+    }
+    #[test]
+    fn occursvariable(){
+        let t1 = from_str("(x +a) + y").unwrap().term;
+        println!("x+y have the variable x in it :  {:?}",occurs('x', &t1));
+
+
+    }
+    #[test]
+    fn ultimateunificationtest(){
+        let t1 = from_str("-a + a").unwrap();
+        let t2 = from_str("(x+y)+z ").unwrap();
+       println!("unification of -a + a and (x+y)+z  leads to :{:?}",unification(&t1,&t2)); 
+
+
+    }
 }
+
+
+pub fn variable(node:&Node)-> Vec<char> {
+    let mut variables:Vec<char> = Vec::new();
+    fn rec(node:&Node,mut vars:Vec<char>)->Vec<char>{
+        match node {
+            Node::Number(_) => {return vars;}
+
+            Node::Variable(char) => {
+                if vars.contains(char)==false {
+                    vars.push(*char);
+                    return vars 
+                }
+                else {
+                    return vars
+
+
+                }
+
+            }
+            Node::BinaryOp(lhs,_ ,rhs ) => {
+                vars = rec(lhs,vars);
+                vars = rec(rhs,vars);
+                return vars 
+
+            }
+            Node::UnaryOp(_,rhs  ) => {
+                vars = rec(rhs,vars);
+                return vars 
+
+
+            }
+
+
+        }
+    
+    }
+    return rec(node,variables)
+
+
+
+}
+fn find(c: char, relations: &HashMap<char, Node>) -> Option<Node> {
+    let mut visited = HashSet::new();
+    let mut current = c;
+    
+    while let Some(node) = relations.get(&current) {
+        if visited.contains(&current) {
+            return None; // detect cycle 
+        }
+        visited.insert(current);
+        
+        match node {
+            Node::Variable(next_char) => {
+                current = *next_char;
+            }
+            _ => return Some(node.clone()),
+        }
+    }
+    
+    Some(Node::Variable(current))
+}
+
+
+// idk man leave me alone i'm tired 
+// okay we have an issue here i imagine which is the fact if a variable is free it won't appear and that needs to change soon 
+pub fn occurs( variable_char:char,node:&Node)-> bool{
+    let chars = variable(node);
+    if chars.contains(&variable_char) {
+
+        return true 
+    }
+    else {
+
+        return false 
+    }
+
+
+
+}
+pub fn unification(pattern: &Term, target: &Term) -> Option<HashMap<char, Node>> {
+    let mut relations: HashMap<char, Node> = HashMap::new();
+    let mut chars: HashSet<char> = HashSet::new();
+    let patternterm = &pattern.term;
+    let targetterm= &target.term;
+    fn fifi( pattern: &Node, target: &Node, relations: &mut HashMap<char, Node>, chars: &mut HashSet<char> ) -> bool {
+        let root_pattern = match pattern {
+            Node::Variable(c) => find(*c, relations),
+            _ => Some(pattern.clone()),
+        };
+
+        let root_target = match target {
+            Node::Variable(c) => find(*c, relations),
+            _ => Some(target.clone()),
+        };
+
+        if root_pattern.is_none() || root_target.is_none() {
+            return false;
+        }
+
+        let root_pattern = root_pattern.unwrap();
+        let root_target = root_target.unwrap();
+
+        if root_pattern == root_target {
+            return true;
+        }
+
+        match (&root_pattern, &root_target) {
+            (Node::Variable(p_char), Node::Variable(t_char)) => {
+              
+                relations.insert(*p_char, Node::Variable(*t_char));
+                println!("hashmap is {:?}",relations);
+                chars.insert(*p_char);
+                //chars.insert(*t_char);
+                true
+            }
+            (Node::Variable(p_char), _) => {
+                if occurs(*p_char, &root_target) {
+                    false
+                } else {
+                    relations.insert(*p_char, root_target.clone());
+                    println!("hashmap is {:?}",relations);
+                    chars.insert(*p_char);
+                    true
+                }
+            }
+            (_, Node::Variable(t_char)) => fifi(&root_target, &root_pattern, relations, chars),
+            (Node::Number(p_val), Node::Number(t_val)) => p_val == t_val,
+            (Node::UnaryOp(p_op, p_rhs), Node::UnaryOp(t_op, t_rhs)) => {
+                p_op == t_op && fifi(p_rhs, t_rhs, relations, chars)
+            }
+            (Node::BinaryOp(p_lhs, p_op, p_rhs), Node::BinaryOp(t_lhs, t_op, t_rhs)) => {
+                
+                p_op == t_op && fifi(p_lhs, t_lhs, relations, chars) &&
+                fifi(p_rhs, t_rhs, relations, chars)
+                    // need to know which one is correct and return on the variables there to themselves, add some checks that it coincides 
+                    // with the other side too example : 
+                    // for now i'll leave it there, i'm hungy too :c 
+                
+                
+
+               
+            }
+            _ => false,
+        }
+    }
+    pub fn finalchecksubstitution(chars:&mut HashSet<char>,relations:&mut HashMap<char,Node>) -> HashMap<char,Node>{
+        let mut substitution = HashMap::new();
+        let mut charscopy = chars.clone();
+        for c in charscopy {
+            if let Some(mut root) = find(c, &relations) {
+                
+                if let Node::Variable(d) = &root {
+                    if *d == c {
+                        continue;
+                    }
+                    substitution.insert(*d,Node::Variable(c));
+                }
+                
+                substitution.insert(c, nodesubst(&root, &relations).0);
+                
+                println!("hashmap is {:?}",relations);
+            }
+        }
+        
+        return(substitution)
+    } 
+
+
+    
+    if fifi(&patternterm, &targetterm, &mut relations, &mut chars) {
+        
+        Some(finalchecksubstitution(&mut chars, &mut relations))
+    } else {
+     if target>=pattern{
+        if let Node::BinaryOp(tlhs,_,trhs) = &target.term{
+            let mut copyrelations = relations.clone();
+            match (fifi(tlhs,&patternterm,&mut relations,&mut chars),fifi(trhs,&patternterm,&mut copyrelations,&mut chars.clone())){
+                (true,true) => {
+                    println!("???? both sides can match weird also rhs is {:?} and chars is {:?}",trhs,chars);
+                    let check = variable(trhs);
+                    let mut result = finalchecksubstitution(&mut chars, &mut relations);
+                    for c in check {
+                        if chars.contains(&c){
+                            return None;
+
+
+                        }
+                        result.insert(c, Node::Variable(c));
+                        chars.insert(c);
+
+
+                    }
+                    Some(result)
+                    
+                }
+                (true,false)=> {
+                    Some(finalchecksubstitution(&mut chars, &mut relations))
+
+                }
+                (false,false)=> {
+                    Some(finalchecksubstitution(&mut chars, &mut copyrelations))
+
+                }
+
+
+                _ => {None}
+            }
+        }
+        else{
+            return None;
+        }
+
+    }
+        
+        else if pattern>target{
+         if let Node::BinaryOp(plhs,_,prhs) = &pattern.term{
+            let mut copyrelations = relations.clone();
+            match (fifi(plhs,&targetterm,&mut relations,&mut chars),fifi(prhs,&targetterm,&mut copyrelations,&mut chars)){
+                (true,true) => {
+                    println!("???? both sides can match weird ");
+                    Some(finalchecksubstitution(&mut chars, &mut relations))
+                   
+                }
+                (true,false)=> {
+                    Some(finalchecksubstitution(&mut chars, &mut relations))
+
+                }
+                (false,false)=> {
+                    Some(finalchecksubstitution(&mut chars, &mut copyrelations))
+
+                }
+
+
+                _ => {None}
+            }   
+        }
+        else {None}
+     }
+     else{
+        return(None)
+     }   
+    }
+}
+/// need to find a better name
+/* 
+pub fn compunification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{
+    let mut freevariables:Vec<char> = Vec::new();
+    pub fn rec(pattern:&Node,target:&Node,freevariables:Vec<char>)->bool{
+        match (pattern,target) {
+            (Node:Variable)
+
+
+
+
+
+        }
+
+
+
+
+    }
+
+
+}
+
+
+*/
+
+
+///takes a pattern as well as a relations related to the pattern, fills the missing variables from the pattern with identity! 
+/// don't think this is useful, will delete but who knows 
+pub fn free(pattern:&Node,relations:HashMap<char,Node>)->Option<HashMap<char,Node>>{
+    //let mut relationscopy = relations; 
+    let mut id = 0;
+    let mut relationscopy:HashMap<char,Node> = relations.clone();
+    pub fn rec(pattern:&Node,relations:&mut HashMap<char,Node>,mut id:i64)-> bool{
+        // this changes depending on the op 
+        // 1 => * 
+        // 0 => + 
+        match pattern {
+            Node::Variable(char) => {
+                if let Some(prev) = relations.get(char){
+                    
+                        return prev == pattern; 
+                }    
+                else {
+                    relations.insert(*char,Node::Number(id)); 
+                    return true;  
+                
+                }
+
+
+            }
+            Node::BinaryOp(lhs,op,rhs) => {
+                if op== &Operator::Add || op == &Operator::Subtract {
+                    id = 0;
+                    rec(lhs,relations,id) && rec(rhs,relations,id)
+                }
+                else if op == &Operator::Multiply || op == &Operator::Divide {
+
+                    id = 1; 
+                    rec(lhs,relations,id) && rec(rhs,relations,id)
+
+                }
+                else {
+                    return false;
+
+                }
+
+
+            }
+            Node::UnaryOp(op,rhs) => {
+                // for now the only unaryop is minus so 
+                id = 0;
+                rec(rhs,relations,id)
+
+            }
+            Node::Number(number) => {
+                // wtf do i do here continue ? 
+                    
+                return false; 
+
+            }
+
+            }
+
+
+        }
+    if rec(pattern, &mut relationscopy,id) {
+        Some(relationscopy)
+
+
+    }
+    else {
+
+        None
+    }
+}
+
+
