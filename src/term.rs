@@ -716,8 +716,8 @@ mod tests {
 
         let t1 = from_str("x").unwrap();
         let t2 = from_str("0").unwrap();
-        println!("x,0 {:?}",unification(&t2.term,&t1.term));
-        println!("x,y:{:?}",unification(&t1.term,&t2.term));
+        println!("x,0 {:?}",unification(&t2,&t1));
+        println!("x,0:{:?}",unification(&t1,&t2));
 
         // this works 
     }
@@ -726,7 +726,7 @@ mod tests {
 
         let t1 = from_str("x").unwrap();
         let t2 = from_str("y").unwrap();
-        println!("x,y:{:?}",unification(&t2.term,&t1.term));
+        println!("x,y:{:?}",unification(&t2,&t1));
 
 
     }
@@ -734,12 +734,12 @@ mod tests {
     fn unificationbinaryop(){
         let t1 = from_str("-x + x").unwrap();
         let t2 = from_str("a + 0 ").unwrap();
-        println!("unification of -x + x and a + 0 leads to :{:?}",unification(&t2.term,&t1.term));}
+        println!("unification of -x + x and a + 0 leads to :{:?}",unification(&t2,&t1));}
     #[test]
     fn unificationmoreshenanigans(){
         let t1 = from_str("(x + y) * (z - 5)").unwrap();
         let t2 = from_str("(3 + 4) * (w - 5)").unwrap();
-       println!("unification of (x + y) * (z - 5) and (3 + 4) * (w - 5) leads to :{:?}",unification(&t2.term,&t1.term));
+       println!("unification of (x + y) * (z - 5) and (3 + 4) * (w - 5) leads to :{:?}",unification(&t2,&t1));
 
 
     
@@ -748,7 +748,7 @@ mod tests {
     fn unificationhard (){
     let t1 = from_str("(x + 2) * z").unwrap();
     let t2 = from_str("(y + y   ) *3").unwrap();
-       println!("unification of (x + 2) *z and (y + y) * 3  leads to :{:?}",unification(&t2.term,&t1.term));
+       println!("unification of (x + 2) *z and (y + y) * 3  leads to :{:?}",unification(&t2,&t1));
 
 
             
@@ -759,13 +759,13 @@ mod tests {
     fn chatgeppittysaidthiswouldntworkbutitdidehehe(){
         let t1 = from_str("x ").unwrap();
         let t2 = from_str("y + y ").unwrap();
-       println!("unification of x and y + y  leads to :{:?}",unification(&t2.term,&t1.term));   
+       println!("unification of x and y + y  leads to :{:?}",unification(&t2,&t1));   
     }
     #[test]
     fn chatgeppittysaidthiswouldntworkbutitdidehehehe(){
         let t1 = from_str("x + x").unwrap();
         let t2 = from_str("(y + 1) + (3 + 1)").unwrap();
-       println!("unification of x+x and (y + 1) + (3 + 1)  leads to :{:?}",unification(&t2.term,&t1.term));   
+       println!("unification of x+x and (y + 1) + (3 + 1)  leads to :{:?}",unification(&t2,&t1));   
     }
     #[test]
     fn simplevariablescheck(){
@@ -794,8 +794,8 @@ mod tests {
     #[test]
     fn ultimateunificationtest(){
         let t1 = from_str("-a + a").unwrap();
-        let t2 = from_str("(x+y)").unwrap();
-       println!("unification of -a + a and (x+y)+z  leads to :{:?}",unification(&t2.term,&t1.term)); 
+        let t2 = from_str("(x+y)+z ").unwrap();
+       println!("unification of -a + a and (x+y)+z  leads to :{:?}",unification(&t1,&t2)); 
 
 
     }
@@ -880,11 +880,12 @@ pub fn occurs( variable_char:char,node:&Node)-> bool{
 
 
 }
-pub fn unification(pattern: &Node, target: &Node) -> Option<HashMap<char, Node>> {
+pub fn unification(pattern: &Term, target: &Term) -> Option<HashMap<char, Node>> {
     let mut relations: HashMap<char, Node> = HashMap::new();
     let mut chars: HashSet<char> = HashSet::new();
-
-    fn fifi( pattern: &Node, target: &Node, relations: &mut HashMap<char, Node>, chars: &mut HashSet<char>, ) -> bool {
+    let patternterm = &pattern.term;
+    let targetterm= &target.term;
+    fn fifi( pattern: &Node, target: &Node, relations: &mut HashMap<char, Node>, chars: &mut HashSet<char> ) -> bool {
         let root_pattern = match pattern {
             Node::Variable(c) => find(*c, relations),
             _ => Some(pattern.clone()),
@@ -931,37 +932,116 @@ pub fn unification(pattern: &Node, target: &Node) -> Option<HashMap<char, Node>>
                 p_op == t_op && fifi(p_rhs, t_rhs, relations, chars)
             }
             (Node::BinaryOp(p_lhs, p_op, p_rhs), Node::BinaryOp(t_lhs, t_op, t_rhs)) => {
-                p_op == t_op
-                    && fifi(p_lhs, t_lhs, relations, chars)
-                    && fifi(p_rhs, t_rhs, relations, chars)
+                
+                p_op == t_op && fifi(p_lhs, t_lhs, relations, chars) &&
+                fifi(p_rhs, t_rhs, relations, chars)
+                    // need to know which one is correct and return on the variables there to themselves, add some checks that it coincides 
+                    // with the other side too example : 
+                    // for now i'll leave it there, i'm hungy too :c 
+                
+                
+
+               
             }
             _ => false,
         }
     }
-
-    if fifi(pattern, target, &mut relations, &mut chars) {
-        
+    pub fn finalchecksubstitution(chars:&mut HashSet<char>,relations:&mut HashMap<char,Node>) -> HashMap<char,Node>{
         let mut substitution = HashMap::new();
-        
-        for c in &chars {
-            if let Some(mut root) = find(*c, &relations) {
+        let mut charscopy = chars.clone();
+        for c in charscopy {
+            if let Some(mut root) = find(c, &relations) {
                 
                 if let Node::Variable(d) = &root {
-                    if *d == *c {
+                    if *d == c {
                         continue;
                     }
-                    substitution.insert(*d,Node::Variable(*c));
+                    substitution.insert(*d,Node::Variable(c));
                 }
                 
-                substitution.insert(*c, nodesubst(&root, &relations).0);
+                substitution.insert(c, nodesubst(&root, &relations).0);
                 
                 println!("hashmap is {:?}",relations);
             }
         }
         
-        Some(substitution)
+        return(substitution)
+    } 
+
+
+    
+    if fifi(&patternterm, &targetterm, &mut relations, &mut chars) {
+        
+        Some(finalchecksubstitution(&mut chars, &mut relations))
     } else {
-        None
+     if target>=pattern{
+        if let Node::BinaryOp(tlhs,_,trhs) = &target.term{
+            let mut copyrelations = relations.clone();
+            match (fifi(tlhs,&patternterm,&mut relations,&mut chars),fifi(trhs,&patternterm,&mut copyrelations,&mut chars.clone())){
+                (true,true) => {
+                    println!("???? both sides can match weird also rhs is {:?} and chars is {:?}",trhs,chars);
+                    let check = variable(trhs);
+                    let mut result = finalchecksubstitution(&mut chars, &mut relations);
+                    for c in check {
+                        if chars.contains(&c){
+                            return None;
+
+
+                        }
+                        result.insert(c, Node::Variable(c));
+                        chars.insert(c);
+
+
+                    }
+                    Some(result)
+                    
+                }
+                (true,false)=> {
+                    Some(finalchecksubstitution(&mut chars, &mut relations))
+
+                }
+                (false,false)=> {
+                    Some(finalchecksubstitution(&mut chars, &mut copyrelations))
+
+                }
+
+
+                _ => {None}
+            }
+        }
+        else{
+            return None;
+        }
+
+    }
+        
+        else if pattern>target{
+         if let Node::BinaryOp(plhs,_,prhs) = &pattern.term{
+            let mut copyrelations = relations.clone();
+            match (fifi(plhs,&targetterm,&mut relations,&mut chars),fifi(prhs,&targetterm,&mut copyrelations,&mut chars)){
+                (true,true) => {
+                    println!("???? both sides can match weird ");
+                    Some(finalchecksubstitution(&mut chars, &mut relations))
+                   
+                }
+                (true,false)=> {
+                    Some(finalchecksubstitution(&mut chars, &mut relations))
+
+                }
+                (false,false)=> {
+                    Some(finalchecksubstitution(&mut chars, &mut copyrelations))
+
+                }
+
+
+                _ => {None}
+            }   
+        }
+        else {None}
+     }
+     else{
+        return(None)
+     }   
     }
 }
 /// need to find a better name
@@ -1058,86 +1138,6 @@ pub fn free(pattern:&Node,relations:HashMap<char,Node>)->Option<HashMap<char,Nod
 
         None
     }
-    }
-
-
-
-///takes 
-pub fn unify(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{
-    let mut copy = pattern; 
-   
-    if let Some(relations )= matchandassigns(pattern,target){
-
-        return Some(relations)
-
-    }
-    // :D
-    
-    else if copy.same_type(&Node::Variable('a'))==false || copy.same_type(&Node::Number(0))==false{
-        let mut result:Option<HashMap<char,Node>>;
-        
-            match copy {
-            /*Node::Number(value) => {
-
-            }
-            Node::Variable() => {
-
-
-
-            }*/
-                Node::BinaryOp(lhs,op,rhs) => {
-                    if let Some(relations) = unify(lhs,target){
-                        if let Some(relations) = free(rhs,relations){
-                            return Some(relations)
-                        }
-                        else{
-                            return None
-                        }
-                        
-                    }
-                    else if let Some(relations) = unify(rhs,target){
-                        if let Some(relations) = free(lhs,relations){
-                            return Some(relations)
-                        }
-                        else{
-                            return None
-                        }
-
-
-                    }
-                    else {
-                       return None
-
-
-                    }
-
-                }   
-                Node::UnaryOp(op,rhs ) => {
-                    if let Some(relations) = unify(rhs,target){
-                        return Some(relations)
-
-                    }
-                    else {
-                        return None
-                    }
-
-
-                }
-                _ => {
-                    return None
-
-
-                }
-            }
-
-
-
-        
-
-    }
-    else {
-        return None
-    }
-
-
 }
+
+
