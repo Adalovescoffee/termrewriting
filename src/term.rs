@@ -765,7 +765,7 @@ mod tests {
     fn chatgeppittysaidthiswouldntworkbutitdidehehehe(){
         let t1 = from_str("x + x").unwrap();
         let t2 = from_str("(y + 1) + (3 + 1)").unwrap();
-       println!("unification of x+x and (y + 1) + (3 + 1)  leads to :{:?}",unification(&t2,&t1));   
+       println!("unification of x+x and (y + 1) + (3 + 1)  leads to :{:?}",unification(&t1,&t2));   
     }
     #[test]
     fn simplevariablescheck(){
@@ -794,7 +794,7 @@ mod tests {
     #[test]
     fn ultimateunificationtest(){
         let t1 = from_str("-a + a").unwrap();
-        let t2 = from_str("(x+y) ").unwrap();
+        let t2 = from_str("(x+y)+z ").unwrap();
        println!("unification of -a + a and (x+y)+z  leads to :{:?}",unification(&t1,&t2)); 
 
 
@@ -817,7 +817,7 @@ mod tests {
     }
     #[test]
     fn unificationn(){
-        let t1 = from_str("x  + 5").unwrap();
+        let t1 = from_str("(x  + 5) + d ").unwrap();
         let t2 = from_str("(z + z) + z ").unwrap();
        println!("unification of x  + 5 and (z + z) + z leads to :{:?}",unification(&t1,&t2)); 
 
@@ -1032,20 +1032,14 @@ pub fn unification(pattern: &Term, target: &Term) -> Option<HashMap<char, Node>>
     
 
 }
-    println!("who's bigger target or pattern {:?}",target>=pattern);
-    if fifi(&patternterm, &targetterm, &mut relations, &mut chars) {
-        
-        Some(finalchecksubstitution(&mut chars, &mut relations,patternterm,targetterm))
-    } else {
-    
-     if target>=pattern{
-        if let Node::BinaryOp(tlhs,_,trhs) = &target.term{
+    pub fn unifyandfill(pattern_term:&Node,target_term:&Node,mut relations:HashMap<char,Node>,mut chars:HashSet<char>)->Option<HashMap<char,Node>>{
+        if let Node::BinaryOp(tlhs,_,trhs) = &target_term{
             let mut copyrelations = relations.clone();
-            match (fifi(&patternterm,&tlhs,&mut relations,&mut chars),fifi(&patternterm,&trhs,&mut copyrelations,&mut chars.clone())){
+            match (fifi(&pattern_term,&tlhs,&mut relations,&mut chars),fifi(&pattern_term,&trhs,&mut copyrelations,&mut chars.clone())){
                 (true,true) => {
                     println!("???? both sides can match weird also rhs is {:?} and chars is {:?}",trhs,chars);
                     let check = variable(trhs);
-                    let mut result = finalchecksubstitution(&mut chars, &mut relations,patternterm,tlhs);
+                    let mut result = finalchecksubstitution(&mut chars, &mut relations,&pattern_term,tlhs);
                     for c in check {
                         if chars.contains(&c){
                             return None;
@@ -1063,12 +1057,12 @@ pub fn unification(pattern: &Term, target: &Term) -> Option<HashMap<char, Node>>
                 }
                 (true,false)=> {
                     println!("true,false");
-                    Some(finalchecksubstitution(&mut chars, &mut copyrelations,patternterm,tlhs))
+                    Some(finalchecksubstitution(&mut chars, &mut copyrelations,&pattern_term,tlhs))
 
                 }
                 (false,false)=> {
                     println!("false,false");
-                    Some(finalchecksubstitution(&mut chars, &mut relations,patternterm,trhs))
+                    Some(finalchecksubstitution(&mut chars, &mut relations,&pattern_term,trhs))
 
                 }
 
@@ -1080,50 +1074,48 @@ pub fn unification(pattern: &Term, target: &Term) -> Option<HashMap<char, Node>>
             return None;
         }
 
+    
+
+
+
+    
+    }
+    println!("pattern> target {:?}",target<pattern);
+    if fifi(&patternterm, &targetterm, &mut relations, &mut chars) {
+        println!("owo");
+        Some(finalchecksubstitution(&mut chars, &mut relations,patternterm,targetterm))
+    } 
+    else {
+    
+     if target>pattern{
+        
+        unifyandfill(&pattern.term, &target.term, relations, chars)
+       
+
     }
         
         else if pattern>target{
-         if let Node::BinaryOp(plhs,_,prhs) = &pattern.term{
-            let mut copyrelations = relations.clone();
-            match (fifi(plhs,&targetterm,&mut relations,&mut chars),fifi(prhs,&targetterm,&mut copyrelations,&mut chars)){
-                (true,true) => {
-                    println!("???? both sides can match weird ");
-                    println!("???? both sides can match weird also rhs is {:?} and chars is {:?}",prhs,chars);
-                    let check = variable(prhs);
-                    let mut result = finalchecksubstitution(&mut chars, &mut relations,plhs,targetterm);
-                    for c in check {
-                        if chars.contains(&c){
-                            return None;
-
-
-                        }
-                        result.insert(c, Node::Variable(c));
-                        chars.insert(c);
-
-
-                    }
-                    Some(result)
-                   
-                }
-                (true,false)=> {
-                    Some(finalchecksubstitution(&mut chars, &mut relations,plhs,targetterm))
-
-                }
-                (false,false)=> {
-                    Some(finalchecksubstitution(&mut chars, &mut copyrelations,prhs,targetterm))
-
-                }
-
-
-                _ => {None}
-            }   
-        }
-        else {None}
-     }
-     else{
-        return(None)
-     }   
+             unifyandfill(&target.term, &pattern.term, relations, chars)
+       
+            
+       
     }
+    else {
+        let mut relationscopy =  relations.clone();
+        let mut charscopy = chars.clone(); 
+        if let Some(unification) = unifyandfill(&pattern.term, &target.term, relationscopy, charscopy){
+            return Some(unification); 
+        }
+        else if let Some(unification) = unifyandfill(&target.term, &pattern.term, relations, chars){
+            return Some(unification);
+
+
+        }
+        else {
+            return None; 
+        }
+    }
+}
 }
 /// need to find a better name
 /* 
