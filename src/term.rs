@@ -382,86 +382,8 @@ pub fn countsize(node:&Node)->i16{
 
 
 }
-pub fn unificationd(pattern: &Node, target: &Node) -> Option<HashMap<char, Node>> {
-    let mut relations: HashMap<char, Node> = HashMap::new();
-    
-    fn unify_helper(pattern: &Node, target: &Node, relations: &mut HashMap<char, Node>) -> bool {
-        match (pattern, target) {
-            (Node::Variable(p_var), _) => {
-                if let Some(bound) = relations.get(p_var).cloned() {
-                    // If variable is already bound, unify with its value
-                    unify_helper(&bound, target, relations)
-                } else {
-                    // Occurs check to prevent infinite recursion
-                    if occurs(p_var, target, relations) {
-                        return false;
-                    }
-                    relations.insert(*p_var, target.clone());
-                    true
-                }
-            }
-            (_, Node::Variable(t_var)) => {
-                unify_helper(target, pattern, relations) // Swap and retry
-            }
-            (Node::Number(p_val), Node::Number(t_val)) => p_val == t_val,
-            (Node::BinaryOp(p_lhs, p_op, p_rhs), Node::BinaryOp(t_lhs, t_op, t_rhs)) => {
-                if p_op != t_op {
-                    return false;
-                }
-                unify_helper(p_lhs, t_lhs, relations) && unify_helper(p_rhs, t_rhs, relations)
-            }
-            (Node::UnaryOp(p_op, p_rhs), Node::UnaryOp(t_op, t_rhs)) => {
-                if p_op != t_op {
-                    return false;
-                }
-                unify_helper(p_rhs, t_rhs, relations)
-            }
-            _ => false,
-        }
-    }
 
-    fn occurs(var: &char, node: &Node, relations: &HashMap<char, Node>) -> bool {
-        match node {
-            Node::Variable(n_var) => {
-                if n_var == var {
-                    true
-                } else if let Some(bound) = relations.get(n_var) {
-                    occurs(var, bound, relations)
-                } else {
-                    false
-                }
-            }
-            Node::BinaryOp(lhs, _, rhs) => occurs(var, lhs, relations) || occurs(var, rhs, relations),
-            Node::UnaryOp(_, rhs) => occurs(var, rhs, relations),
-            _ => false,
-        }
-    }
-
-    if unify_helper(pattern, target, &mut relations) {
-        // Resolve all variable bindings
-        let mut changed = true;
-        while changed {
-            let mut updates = Vec::new();
-    for (key, value) in relations.iter() {
-        if let Node::Variable(v) = value {
-            if let Some(resolved) = relations.get(v) {
-                updates.push((key.clone(), resolved.clone()));
-                changed = true;
-            }
-        }
-    }
-    // Apply updates
-    for (key, resolved) in updates {
-        if let Some(value) = relations.get_mut(&key) {
-            *value = resolved;
-        }
-    }
-        }
-        Some(relations)
-    } else {
-        None
-    }
-}
+     
 // this function matchand binds on a given like node, it doesn't move the node 
 // what i need rn is a function that takes this matchandbinds if it return a failure on a given node in the b 
 /// On a given node of the ast, it attempts to match if one node can be substituted (subsumpted?)
@@ -821,6 +743,47 @@ mod tests {
         let t2 = from_str("(z + z) + z ").unwrap();
        println!("unification of x  + 5 and (z + z) + z leads to :{:?}",unification(&t1,&t2)); 
 
+
+
+    }
+    #[test]
+    fn groupaxiom12(){
+        let t1 = from_str("0 + x ").unwrap();
+        let t2 = from_str("a + 0 ").unwrap();
+       println!("unification of 0 + x and a + 0 leads to :{:?}",unification(&t1,&t2)); 
+
+
+    }
+    #[test]
+    fn groupaxiom23(){
+        let t1 = from_str("a + 0 ").unwrap();
+        let t2 = from_str("-x + x ").unwrap();
+       println!("unification of a + 0 and -x + x leads to :{:?}",unification(&t1,&t2)); 
+
+
+    }
+    #[test]
+    fn groupaxiom14(){
+        let t1 = from_str("0 + a ").unwrap();
+        let t2 = from_str("(x + y) + z").unwrap();
+       println!("unification of a + 0 and (x + y) + z leads to :{:?}",unification(&t1,&t2)); 
+
+
+
+    }
+    #[test]
+    fn groupaxiom24(){
+        let t1 = from_str("a + 0 ").unwrap();
+        let t2 = from_str("(x + y) + z ").unwrap();
+       println!("unification of 0 + a and (x + y) +z leads to :{:?}",unification(&t1,&t2)); 
+
+
+    }
+    #[test]
+    fn groupaxiom34(){
+        let t1 = from_str("-a + a ").unwrap();
+        let t2 = from_str("(x + y) + z ").unwrap();
+       println!("unification of -a + a and (x + y) +z leads to :{:?}",unification(&t1,&t2)); 
 
 
     }
