@@ -40,6 +40,28 @@ impl Axiom {
 
         }
     }
+    fn criticalpairs(&self,other:&Axiom)->Option<Axiom>{
 
+        if let Some((lhs,rhs)) = self.criticalterms(other){
+            if lhs == rhs {
+                return {None}
+
+
+            }
+            else {
+                let criticalpair = Axiom{lhs : lhs,rhs :rhs};
+                return Some(criticalpair)
+            }
+
+        } 
+        else {
+            return {
+                return {None};
+
+            }
+        }
+
+
+    }
 
 }
