@@ -751,7 +751,7 @@ mod tests {
     fn groupaxiom12(){
         let t1 = from_str("0 + x ").unwrap();
         let t2 = from_str("a + 0 ").unwrap();
-       println!("unification of 0 + x and a + 0 leads to :{:?}",unification(&t1,&t2)); 
+       println!("unification of 0 + x and a + 0 leads to :{:?}",unifyandfill(&t1,&t2)); 
 
 
     }
@@ -759,7 +759,7 @@ mod tests {
     fn groupaxiom23(){
         let t1 = from_str("a + 0 ").unwrap();
         let t2 = from_str("-x + x ").unwrap();
-       println!("unification of a + 0 and -x + x leads to :{:?}",unification(&t1,&t2)); 
+       println!("unification of a + 0 and -x + x leads to :{:?}",unifyandfill(&t1,&t2)); 
 
 
     }
@@ -767,7 +767,7 @@ mod tests {
     fn groupaxiom14(){
         let t1 = from_str("0 + a ").unwrap();
         let t2 = from_str("(x + y) + z").unwrap();
-       println!("unification of 0 + a and (x + y) + z leads to :{:?}",unification(&t1,&t2)); 
+       println!("unification of 0 + a and (x + y) + z leads to :{:?}",unifyandfill(&t1,&t2)); 
 
 
 
@@ -776,15 +776,15 @@ mod tests {
     fn groupaxiom24(){
         let t1 = from_str("a + 0 ").unwrap();
         let t2 = from_str("(x + y) + z ").unwrap();
-       println!("unification of a + 0 and (x + y) +z leads to :{:?}",unification(&t1,&t2)); 
+       println!("unification of a + 0 and (x + y) +z leads to :{:?}",unifyandfill(&t2,&t1)); 
        println!("{:?}",t2>t1);
 
     }
     #[test]
     fn groupaxiom24ez(){
         let t1 = from_str("a + 0 ").unwrap();
-        let t2 = from_str("(x + y) ").unwrap();
-       println!("unification of a + 0 and (x + y) leads to :{:?}",simpleunification(&t1,&t2)); 
+        let t2 = from_str("(x + y)+z ").unwrap();
+       println!("unification of a + 0 and (x + y) leads to :{:?}",unifyandfill(&t1,&t2)); 
        
 
     }
@@ -792,7 +792,7 @@ mod tests {
     fn groupaxiom34(){
         let t1 = from_str("-a + a ").unwrap();
         let t2 = from_str("(x + y) + z ").unwrap();
-       println!("unification of -a + a and (x + y) +z leads to :{:?}",unification(&t1,&t2)); 
+       println!("unification of -a + a and (x + y) +z leads to :{:?}",unifyandfill(&t1,&t2)); 
 
 
     }
@@ -1254,6 +1254,51 @@ pub fn simpleunification(pattern: &Term, target: &Term) -> Option<HashMap<char, 
       println!("chars is :{:?}",chars);
       return(None)
     }
+}
+pub fn unifyandfill(pattern: &Term, target: &Term) -> Option<HashMap<char, Node>> {
+    
+    if let Some(subst) = simpleunification(pattern, target) {
+        println!("ok this is where the problem is ");
+        return Some(subst);
+    }
+    
+    
+    let pattern_term = pattern.clone().term; 
+    let target_term = target.clone().term;
+    match target_term {
+        Node::BinaryOp(lhs, _, rhs) => {
+            if let Some(subst) = unifyandfill(pattern, &Term{term:*lhs,size:0}) {
+                return Some(subst);
+            }
+            if let Some(subst) = unifyandfill(pattern, &Term{term:*rhs,size:0}) {
+                return Some(subst);
+            }
+        }
+        Node::UnaryOp(_, rhs) => {
+            if let Some(subst) = unifyandfill(pattern, &Term{term:*rhs,size:0}) {
+                return Some(subst);
+            }
+        }
+        _ => {}
+    }
+    match pattern_term {
+        Node::BinaryOp(lhs, _, rhs) => {
+            if let Some(subst) = unifyandfill( &Term{term:*lhs,size:0},target) {
+                return Some(subst);
+            }
+            if let Some(subst) = unifyandfill( &Term{term:*rhs,size:0},target) {
+                return Some(subst);
+            }
+        }
+        Node::UnaryOp(_, rhs) => {
+            if let Some(subst) = unifyandfill(&Term{term:*rhs,size:0},target) {
+                return Some(subst);
+            }
+        }
+        _ => {}
+    }
+    None
+    //unifyandfill(target,pattern)
 }
 /* 
  pub fn unifyfill(pattern_term:&Node,target_term:&Node,mut relations:HashMap<char,Node>,mut chars:HashSet<char>)->Option<HashMap<char,Node>>{

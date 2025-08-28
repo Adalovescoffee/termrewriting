@@ -1,7 +1,7 @@
 use core::fmt; 
 use std::collections::{HashMap, HashSet};
 use crate::lexer::Lexer;
-use crate::term::{nodesubst, unification, Term}; 
+use crate::term::{nodesubst, unification,unifyandfill, Term}; 
 
 
 // here there'd be a list of possible rules you can choose, apply superposition 
@@ -15,7 +15,7 @@ pub struct Axiom {
 }
 impl Axiom {
     fn _criticalterms(&self,other:&Axiom)->Option<(Term,Term)>{
-        if let Some(substitution) = unification(&self.lhs, &other.lhs){
+        if let Some(substitution) = unifyandfill(&self.lhs, &other.lhs){
             
             let (axiom1lhs,size1) = nodesubst(&self.lhs.term, &substitution);
             let axiom1:Term = Term{term:axiom1lhs,size:size1};
@@ -40,7 +40,7 @@ impl Axiom {
 
         }
     }
-    /* 
+    
     fn normalize(&self) ->Axiom {
         if self.lhs>self.rhs {
             let axiom = self.clone();
@@ -54,7 +54,7 @@ impl Axiom {
             return *self
         }
     }
-    */
+
     fn criticalpairs(&self,other:&Axiom)->Option<Axiom>{
 
         if let Some((lhs,rhs)) = self._criticalterms(other){
