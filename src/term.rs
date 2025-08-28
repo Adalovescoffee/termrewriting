@@ -10,6 +10,7 @@ use crate::parser::{ Node, Operator,Parser,ParserError};
 //#[derive(PartialEq, Eq)]
 
 /// a term is a node (variable,number, binary operation of nodes) and has a size (number of operations)
+#[derive(Clone)]
 pub struct Term {
     pub term:Node,
     pub size:i16,
@@ -670,7 +671,7 @@ mod tests {
     fn unificationhard (){
     let t1 = from_str("(x + 2) * z").unwrap();
     let t2 = from_str("(y + y   ) *3").unwrap();
-       println!("unification of (x + 2) *z and (y + y) * 3  leads to :{:?}",unification(&t2,&t1));
+       println!("unification of (x + 2) *z and (y + y) * 3  leads to :{:?}",simpleunification(&t2,&t1));
 
 
             
@@ -766,7 +767,7 @@ mod tests {
     fn groupaxiom14(){
         let t1 = from_str("0 + a ").unwrap();
         let t2 = from_str("(x + y) + z").unwrap();
-       println!("unification of a + 0 and (x + y) + z leads to :{:?}",unification(&t1,&t2)); 
+       println!("unification of 0 + a and (x + y) + z leads to :{:?}",unification(&t1,&t2)); 
 
 
 
@@ -775,8 +776,16 @@ mod tests {
     fn groupaxiom24(){
         let t1 = from_str("a + 0 ").unwrap();
         let t2 = from_str("(x + y) + z ").unwrap();
-       println!("unification of 0 + a and (x + y) +z leads to :{:?}",unification(&t1,&t2)); 
+       println!("unification of a + 0 and (x + y) +z leads to :{:?}",unification(&t1,&t2)); 
+       println!("{:?}",t2>t1);
 
+    }
+    #[test]
+    fn groupaxiom24ez(){
+        let t1 = from_str("a + 0 ").unwrap();
+        let t2 = from_str("(x + y) ").unwrap();
+       println!("unification of a + 0 and (x + y) leads to :{:?}",simpleunification(&t1,&t2)); 
+       
 
     }
     #[test]
@@ -787,18 +796,29 @@ mod tests {
 
 
     }
+    #[test]
+    fn findtest(){
+
+        let hashmap: HashMap<char, Node> = vec![
+            ('x', Node::Variable('a')),
+            ('y', Node::Number(0)),
+            ('a', Node::Variable('x')),
+        ].into_iter().collect();
+
+        println!("find function gives :{:?} ", find('a',&hashmap));
+    }
 }
 
 
-pub fn variable(node:&Node)-> Vec<char> {
-    let mut variables:Vec<char> = Vec::new();
-    fn rec(node:&Node,mut vars:Vec<char>)->Vec<char>{
+pub fn variable(node:&Node)-> HashSet<char> {
+    let mut variables:HashSet<char> = HashSet::new();
+    fn rec(node:&Node,mut vars:HashSet<char>)->HashSet<char>{
         match node {
             Node::Number(_) => {return vars;}
 
             Node::Variable(char) => {
                 if vars.contains(char)==false {
-                    vars.push(*char);
+                    vars.insert(*char);
                     return vars 
                 }
                 else {
@@ -836,7 +856,7 @@ fn find(c: char, relations: &HashMap<char, Node>) -> Option<Node> {
     
     while let Some(node) = relations.get(&current) {
         if visited.contains(&current) {
-            return None; // detect cycle 
+            return Some(node.clone())
         }
         visited.insert(current);
         
@@ -951,6 +971,7 @@ pub fn unification(pattern: &Term, target: &Term) -> Option<HashMap<char, Node>>
                         continue;
                     }
                     substitution.insert(*d,Node::Variable(c));
+                    chars.insert(*d);
                 }
                 let rootvariable:HashSet<char> = variable(&root).into_iter().collect();
                 
@@ -981,16 +1002,18 @@ pub fn unification(pattern: &Term, target: &Term) -> Option<HashMap<char, Node>>
 
                     }
                     substitution.insert(c,root.clone());
+                    chars.insert(c);
                 }
                    
                 
                 substitution.insert(c, nodesubst(&root, &hashroot).0);
+                chars.insert(c);
                 
-                println!("hashmapp is {:?}",substitution);
             }
            
         }
-        
+        println!("hashmapp inside finalcheck is {:?}",substitution);
+        println!("chars inside of finalcheck is {:?}",chars);
         return(substitution)
     
 
@@ -1015,23 +1038,41 @@ pub fn unification(pattern: &Term, target: &Term) -> Option<HashMap<char, Node>>
 
 
                     }
+                    println!("this is final chars i think{:?}",chars);
+                    if variable(pattern_term).is_subset(&chars) && variable(target_term).is_subset(&chars){
+                        println!("yey it matches also the result is : {:?}",result);
+
+                    }
+                    else {
+                        println!("yuck : {:?}",result);   
+                    }
                     Some(result)
                     
                 }
                 (true,false)=> {
                     println!("true,false");
-                    Some(finalchecksubstitution(&mut chars, &mut copyrelations,&pattern_term,tlhs))
+                    
+                    let result = Some(finalchecksubstitution(&mut chars, &mut copyrelations,&pattern_term,tlhs));
+                    println!("chars here is {:?}", chars );
+                    return result;
+                }
+                (false,true) => {
+
+                    println!("false,true");
+                    let result = Some(finalchecksubstitution(&mut chars, &mut copyrelations,&pattern_term,trhs));
+                    println!("chars here is {:?}", chars );                    
+                    return result;
 
                 }
                 (false,false)=> {
-                    println!("false,false");
-                    Some(finalchecksubstitution(&mut chars, &mut relations,&pattern_term,trhs))
-
+                    
+                 return None
                 }
 
 
                 _ => {None}
             }
+
         }
         else{
             return None;
@@ -1044,32 +1085,22 @@ pub fn unification(pattern: &Term, target: &Term) -> Option<HashMap<char, Node>>
     
     }
     println!("pattern> target {:?}",target<pattern);
-    if fifi(&patternterm, &targetterm, &mut relations, &mut chars) {
+    println!("pattern< target {:?}",target>pattern);
+    if fifi(&patternterm, &targetterm, &mut relations, &mut chars)&& variable(patternterm).is_subset(&chars) && variable(targetterm).is_subset(&chars) {
         println!("owo");
+        
         Some(finalchecksubstitution(&mut chars, &mut relations,patternterm,targetterm))
     } 
-    else {
     
-     if target>pattern{
-        
-        unifyandfill(&pattern.term, &target.term, relations, chars)
-       
-
-    }
-        
-        else if pattern>target{
-             unifyandfill(&target.term, &pattern.term, relations, chars)
-       
-            
-       
-    }
     else {
         let mut relationscopy =  relations.clone();
         let mut charscopy = chars.clone(); 
         if let Some(unification) = unifyandfill(&pattern.term, &target.term, relationscopy, charscopy){
+            //println!("aaaa {:?}",charscopy.);
             return Some(unification); 
         }
         else if let Some(unification) = unifyandfill(&target.term, &pattern.term, relations, chars){
+           // println!("aaaa {:?}",chars);
             return Some(unification);
 
 
@@ -1079,7 +1110,219 @@ pub fn unification(pattern: &Term, target: &Term) -> Option<HashMap<char, Node>>
         }
     }
 }
+pub fn simpleunification(pattern: &Term, target: &Term) -> Option<HashMap<char, Node>> {
+    let mut relations: HashMap<char, Node> = HashMap::new();
+    let mut chars: HashSet<char> = HashSet::new();
+    let patternterm = &pattern.term;
+    let targetterm= &target.term;
+    fn fifi( pattern: &Node, target: &Node, relations: &mut HashMap<char, Node>, chars: &mut HashSet<char> ) -> bool {
+        let root_pattern = match pattern {
+            Node::Variable(c) => find(*c, relations),
+            _ => Some(pattern.clone()),
+        };
+
+        let root_target = match target {
+            Node::Variable(c) => find(*c, relations),
+            _ => Some(target.clone()),
+        };
+
+        if root_pattern.is_none() || root_target.is_none() {
+            return false;
+        }
+
+        let root_pattern = root_pattern.unwrap();
+        let root_target = root_target.unwrap();
+
+        if root_pattern == root_target {
+            return true;
+        }
+
+        match (&root_pattern, &root_target) {
+            (Node::Variable(p_char), Node::Variable(t_char)) => {
+              
+                relations.insert(*p_char, Node::Variable(*t_char));
+                relations.insert(*t_char,Node::Variable(*p_char));
+                println!("hashmap is {:?}",relations);
+                chars.insert(*p_char);
+                chars.insert(*t_char);
+                //chars.insert(*t_char);
+                true
+            }
+            (Node::Variable(p_char), _) => {
+                if occurs(*p_char, &root_target) {
+                    false
+                } else {
+                    relations.insert(*p_char, root_target.clone());
+                    println!("hashmap is {:?}",relations);
+                    chars.insert(*p_char);
+                    true
+                }
+            }
+            (_, Node::Variable(t_char)) => fifi(&root_target, &root_pattern, relations, chars),
+            (Node::Number(p_val), Node::Number(t_val)) => p_val == t_val,
+            (Node::UnaryOp(p_op, p_rhs), Node::UnaryOp(t_op, t_rhs)) => {
+                p_op == t_op && fifi(p_rhs, t_rhs, relations, chars)
+            }
+            (Node::BinaryOp(p_lhs, p_op, p_rhs), Node::BinaryOp(t_lhs, t_op, t_rhs)) => {
+                
+                p_op == t_op && fifi(p_lhs, t_lhs, relations, chars) &&
+                fifi(p_rhs, t_rhs, relations, chars)
+                    // need to know which one is correct and return on the variables there to themselves, add some checks that it coincides 
+                    // with the other side too example : 
+                    // for now i'll leave it there, i'm hungy too :c 
+                
+                
+
+               
+            }
+            _ => false,
+        }
+    }
+    pub fn finalchecksubstitution(chars:&mut HashSet<char>,relations:&mut HashMap<char,Node>,pattern: &Node,target: &Node) -> HashMap<char,Node>{
+        let mut substitution = HashMap::new();
+        let mut charscopy = chars.clone();
+        let patternvariable:HashSet<char> = variable(pattern).into_iter().collect();
+        let targetvariable:HashSet<char> = variable(target).into_iter().collect();
+
+        println!("chars is {:?}",charscopy);
+        for c in charscopy {
+            if let Some(mut root) = find(c, &relations) {
+                println!("aaaaaaaaa {:?}",(root.clone(),c));
+                if let Node::Variable(d) = &root {
+                    if *d == c {
+                        continue;
+                    }
+                    substitution.insert(*d,Node::Variable(c));
+                    chars.insert(*d);
+                }
+                let rootvariable:HashSet<char> = variable(&root).into_iter().collect();
+                
+                let mut hashroot:HashMap<char,Node> = HashMap::new();
+                for v in rootvariable.clone(){
+                    if let Some(Node::Number(numba))=find(v,relations){
+                        hashroot.insert(v, Node::Number(numba));
+
+
+                    }
+                    else {
+                        if let Some(vnode) = find(v,relations){
+                            let vendnodevariable:HashSet<char> = variable(&vnode).into_iter().collect();
+                            if patternvariable.contains(&c)&& vendnodevariable.is_subset(&targetvariable){
+                                hashroot.insert(v,vnode);
+
+                            
+                            }
+                        else if targetvariable.contains(&c)&&vendnodevariable.is_subset(&patternvariable){
+                            hashroot.insert(v,vnode);
+                            }
+                            else {
+                                println!("medemedewehaveissues,vnode:{:?}",vnode);
+
+
+                            }
+                        }
+
+                    }
+                    substitution.insert(c,root.clone());
+                    chars.insert(c);
+                }
+                   
+                
+                substitution.insert(c, nodesubst(&root, &hashroot).0);
+                chars.insert(c);
+                
+            }
+           
+        }
+        println!("hashmapp inside finalcheck is {:?}",substitution);
+        println!("chars inside of finalcheck is {:?}",chars);
+        return(substitution)
+    
+
 }
+   
+    println!("pattern> target {:?}",target<pattern);
+    println!("pattern< target {:?}",target>pattern);
+    
+    if fifi(&patternterm, &targetterm, &mut relations, &mut chars)&& variable(patternterm).is_subset(&chars) && variable(targetterm).is_subset(&chars) {
+        println!("owo");
+        
+        Some(finalchecksubstitution(&mut chars, &mut relations,patternterm,targetterm))
+    } 
+    
+    else {
+      println!("chars is :{:?}",chars);
+      return(None)
+    }
+}
+/* 
+ pub fn unifyfill(pattern_term:&Node,target_term:&Node,mut relations:HashMap<char,Node>,mut chars:HashSet<char>)->Option<HashMap<char,Node>>{
+        if let Node::BinaryOp(tlhs,_,trhs) = &target_term{
+            let mut copyrelations = relations.clone();
+            match (fifi(&pattern_term,&tlhs,&mut relations,&mut chars),fifi(&pattern_term,&trhs,&mut copyrelations,&mut chars.clone())){
+                (true,true) => {
+                    println!("???? both sides can match weird also rhs is {:?} and chars is {:?}",trhs,chars);
+                    let check = variable(trhs);
+                    let mut result = finalchecksubstitution(&mut chars, &mut relations,&pattern_term,tlhs);
+                    for c in check {
+                        if chars.contains(&c){
+                            return None;
+
+
+                        }
+                        // need to add a check if this c is already in chars or smt so that there are no issues 
+                        result.insert(c, Node::Variable(c));
+                        chars.insert(c);
+
+
+                    }
+                    println!("this is final chars i think{:?}",chars);
+                    if variable(pattern_term).is_subset(&chars) && variable(target_term).is_subset(&chars){
+                        println!("yey it matches also the result is : {:?}",result);
+
+                    }
+                    else {
+                        println!("yuck : {:?}",result);   
+                    }
+                    Some(result)
+                    
+                }
+                (true,false)=> {
+                    println!("true,false");
+                    
+                    let result = Some(finalchecksubstitution(&mut chars, &mut copyrelations,&pattern_term,tlhs));
+                    println!("chars here is {:?}", chars );
+                    return result;
+                }
+                (false,true) => {
+
+                    println!("false,true");
+                    let result = Some(finalchecksubstitution(&mut chars, &mut copyrelations,&pattern_term,trhs));
+                    println!("chars here is {:?}", chars );                    
+                    return result;
+
+                }
+                (false,false)=> {
+                    
+                 return None
+                }
+
+
+                _ => {None}
+            }
+
+        }
+        else{
+            return None;
+        }
+
+    
+
+
+
+    
+    }
+*/
 /// need to find a better name
 /* 
 pub fn compunification(pattern:&Node,target:&Node)-> Option<HashMap<char,Node>>{

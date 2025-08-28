@@ -1,5 +1,5 @@
 use core::fmt; 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use crate::lexer::Lexer;
 use crate::term::{nodesubst, unification, Term}; 
 
@@ -14,7 +14,7 @@ pub struct Axiom {
     pub rhs:Term
 }
 impl Axiom {
-    fn criticalterms(&self,other:&Axiom)->Option<(Term,Term)>{
+    fn _criticalterms(&self,other:&Axiom)->Option<(Term,Term)>{
         if let Some(substitution) = unification(&self.lhs, &other.lhs){
             
             let (axiom1lhs,size1) = nodesubst(&self.lhs.term, &substitution);
@@ -40,28 +40,78 @@ impl Axiom {
 
         }
     }
+    /* 
+    fn normalize(&self) ->Axiom {
+        if self.lhs>self.rhs {
+            let axiom = self.clone();
+            return *axiom
+        }
+        else if self.lhs < self.rhs {
+            (self.lhs,self.rhs) = (self.rhs,self.lhs); 
+            return *self
+        }
+        else {
+            return *self
+        }
+    }
+    */
     fn criticalpairs(&self,other:&Axiom)->Option<Axiom>{
 
-        if let Some((lhs,rhs)) = self.criticalterms(other){
+        if let Some((lhs,rhs)) = self._criticalterms(other){
             if lhs == rhs {
-                return {None}
+                return None
 
 
             }
             else {
                 let criticalpair = Axiom{lhs : lhs,rhs :rhs};
+                // i need to order it by <r apparently 
                 return Some(criticalpair)
             }
 
         } 
         else {
-            return {
-                return {None};
-
-            }
+            
+                return None;
         }
-
 
     }
 
+}
+pub struct Structure {
+    pub axioms: HashSet<Axiom>,
+
+}
+impl Structure {
+    fn builder(){
+
+
+
+
+    }
+    /* 
+    pub fn knuthbendix(self)->Option<Structure> {
+        let mut ruleset:Vec<Axiom> = Vec::new();
+        let mut axiomset:Vec<Axiom>= self.axioms.into_iter().collect();
+        while let Some(axiom)= axiomset.pop(){
+            for rest in axiomset{
+                
+                if let Some(newaxiom) = axiom.criticalpairs(&rest){
+                   ruleset.push(newaxiom);
+
+                }
+                
+
+            }
+
+
+
+
+        }
+        return None
+
+    }
+
+    */
+    
 }
