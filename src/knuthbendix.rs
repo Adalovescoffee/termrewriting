@@ -79,7 +79,7 @@ impl Axiom {
 
 }
 pub struct Structure {
-    pub axioms: HashSet<Axiom>,
+    pub axioms: Vec<Axiom>,
 
 }
 impl Structure {
@@ -89,29 +89,32 @@ impl Structure {
 
 
     }
-    /* 
-    pub fn knuthbendix(self)->Option<Structure> {
+    
+    pub fn knuthbendix(self)->Structure {
         let mut ruleset:Vec<Axiom> = Vec::new();
         let mut axiomset:Vec<Axiom>= self.axioms.into_iter().collect();
         while let Some(axiom)= axiomset.pop(){
-            for rest in axiomset{
+            let normalized = axiom.normalize();
+            ruleset.push( normalized);
+            let mut new_axioms = Vec::new();
+            for rest in &axiomset{
                 
-                if let Some(newaxiom) = axiom.criticalpairs(&rest){
-                   ruleset.push(newaxiom);
+                if let Some(newaxiom) = axiom.criticalpairs(rest){
+                   new_axioms.push(newaxiom);
 
                 }
                 
 
             }
 
-
+            axiomset.extend(new_axioms);
 
 
         }
-        return None
+        return Structure { axioms: axiomset }
 
     }
 
-    */
+    
     
 }
