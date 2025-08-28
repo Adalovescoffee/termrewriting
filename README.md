@@ -8,9 +8,9 @@
 - [x] apply axioms/rewrite rules on terms 
 - [x] order of complexity 
 - [x] subsumption order 
-- [ ] find critical terms 
-- [ ] superposition 
-- [ ] ... 
+- [x] find critical terms 
+- [x] superposition 
+- [x] critical pairs 
 - [ ] Knuth Bendix completion algorithm 
 - [ ] solving word problem for finitely presented groups 
 - [ ] finding grobner base 
