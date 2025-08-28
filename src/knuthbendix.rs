@@ -8,7 +8,7 @@ use crate::term::{nodesubst, unification,unifyandfill, Term};
 // add new rewrite rules, check for confluency 
 // fix commutativity 
 // 
-
+#[derive(Clone)]
 pub struct Axiom {
     pub lhs:Term,
     pub rhs:Term
@@ -44,17 +44,17 @@ impl Axiom {
     fn normalize(&self) ->Axiom {
         if self.lhs>self.rhs {
             let axiom = self.clone();
-            return *axiom
+            return axiom
         }
         else if self.lhs < self.rhs {
-            (self.lhs,self.rhs) = (self.rhs,self.lhs); 
-            return *self
+            let axiom =Axiom{lhs:self.rhs.clone(),rhs:self.lhs.clone()}; 
+            return axiom
         }
         else {
-            return *self
+            return self.clone()
         }
     }
-
+    
     fn criticalpairs(&self,other:&Axiom)->Option<Axiom>{
 
         if let Some((lhs,rhs)) = self._criticalterms(other){
