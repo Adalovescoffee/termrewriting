@@ -1,18 +1,18 @@
 use core::fmt; 
 use std::collections::{HashMap, HashSet};
 use crate::lexer::Lexer;
-use crate::term::{nodesubst, unification,unifyandfill, Term}; 
+use crate::term::{nodesubst, unification,unifyandfill, Term,from_str}; 
 
 
 // here there'd be a list of possible rules you can choose, apply superposition 
 // add new rewrite rules, check for confluency 
 // fix commutativity 
 // 
-#[derive(Clone)]
+#[derive(Clone,Debug,PartialEq)]
 pub struct Axiom {
     pub lhs:Term,
     pub rhs:Term
-}
+}   
 impl Axiom {
     fn _criticalterms(&self,other:&Axiom)->Option<(Term,Term)>{
         if let Some(substitution) = unifyandfill(&self.lhs, &other.lhs){
@@ -78,6 +78,7 @@ impl Axiom {
     }
 
 }
+#[derive(Debug)]
 pub struct Structure {
     pub axioms: Vec<Axiom>,
 
@@ -100,7 +101,8 @@ impl Structure {
             for rest in &axiomset{
                 
                 if let Some(newaxiom) = axiom.criticalpairs(rest){
-                   new_axioms.push(newaxiom);
+                    if !axiomset.contains(&newaxiom){
+                   new_axioms.push(newaxiom);}
 
                 }
                 
@@ -108,13 +110,50 @@ impl Structure {
             }
 
             axiomset.extend(new_axioms);
+        if (ruleset.len()>50){
 
+            break
+        }
 
         }
-        return Structure { axioms: axiomset }
+        return Structure { axioms: ruleset }
 
     }
 
     
     
+}
+
+#[cfg (test)]
+mod tests{
+use std::vec;
+
+use crate::knuthbendix;
+
+use super::*;
+#[test]
+fn grouptheoryfirsttrymaybeihope(){
+    let structure = Structure{
+        axioms: vec![
+        Axiom{lhs:from_str("a+0").unwrap(),rhs:from_str("a+0").unwrap()},
+        Axiom{lhs:from_str("0+b").unwrap(),rhs:from_str("b+0").unwrap()},
+        Axiom{lhs:from_str("-c+c").unwrap(),rhs:from_str("0").unwrap()},
+        Axiom{lhs:from_str("(x+y)+z").unwrap(),rhs:from_str("x+(y+z)").unwrap()}
+
+
+
+
+        ]
+    };
+    let axioms = structure.knuthbendix().axioms;
+    for axiom in axioms {
+        println!("{}={}",axiom.lhs.term,axiom.rhs.term);
+
+
+    }
+
+
+}
+
+
 }

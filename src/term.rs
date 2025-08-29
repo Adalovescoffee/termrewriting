@@ -10,7 +10,7 @@ use crate::parser::{ Node, Operator,Parser,ParserError};
 //#[derive(PartialEq, Eq)]
 
 /// a term is a node (variable,number, binary operation of nodes) and has a size (number of operations)
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct Term {
     pub term:Node,
     pub size:i16,
@@ -20,12 +20,65 @@ pub struct Term {
 
 
 }
-
+// In term.rs, add this after the PartialEq implementation
+impl Eq for Term {}
 impl PartialEq for Term {
     fn eq(&self, other: &Self) -> bool {
-        self.size == other.size && self.complexitysize() == other.complexitysize()
+        // First check if sizes are equal as a quick optimization
+        if self.size != other.size {
+            return false;
+        }
+        
+        // Then compare the actual term structure
+        nodes_equal(&self.term, &other.term)
     }
 }
+
+// Helper function to compare node structures
+fn nodes_equal(node1: &Node, node2: &Node) -> bool {
+    let mut variableequality:HashMap<char,char> = HashMap::new();
+    fn rec(node1:&Node,node2:&Node,variableequality: &mut HashMap<char, char>)-> bool {
+    match (node1, node2) {
+        (Node::Number(n1), Node::Number(n2)) => n1 == n2,
+        (Node::Variable(c1), Node::Variable(c2)) => {
+            if !variableequality.contains_key(c1) && !variableequality.contains_key(c2){
+                variableequality.insert(*c1, *c2);
+                variableequality.insert(*c2, *c1);
+                return true;
+            }
+            else {
+                if variableequality.contains_key(c1){
+                    return c2 == variableequality.get(c1).unwrap() && c1 == variableequality.get(c2).unwrap() // this is safe 
+                        
+
+
+                    
+
+
+                }
+                else {
+                    return c2 == variableequality.get(c1).unwrap() && c1 == variableequality.get(c2).unwrap()
+
+
+                }
+
+
+            }
+            
+            
+            }
+        (Node::UnaryOp(op1, rhs1), Node::UnaryOp(op2, rhs2)) => {
+            op1 == op2 && rec(rhs1, rhs2,variableequality)
+        }
+        (Node::BinaryOp(lhs1, op1, rhs1), Node::BinaryOp(lhs2, op2, rhs2)) => {
+            op1 == op2 && rec(lhs1, lhs2,variableequality) && rec(rhs1, rhs2,variableequality)
+        }
+        _ => false,
+    }
+    }
+    return rec(node1,node2,&mut variableequality)
+}
+
 /// order of complexity aka comparing the number of operations in a tree + checking the lhnode of the trees if equality   
 impl PartialOrd for Term {
     fn partial_cmp (&self, other:&Self) ->Option<Ordering> {
@@ -497,6 +550,15 @@ mod tests {
     /// Helper function for binary operations in tests
     fn bin_op(lhs: Node, op: Operator, rhs: Node) -> Node {
         Node::BinaryOp(Box::new(lhs), op, Box::new(rhs))
+    }
+    #[test]
+    fn equaltest(){
+        let t1 = from_str("(b + 0)+ a").unwrap();
+        let t2 = from_str("(c + 0) + c").unwrap();
+        let isequal =(t1 == t2);
+        assert_eq!(true,isequal)
+
+
     }
     #[test]
     fn testsubsumptionorder(){

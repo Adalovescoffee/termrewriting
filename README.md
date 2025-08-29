@@ -10,7 +10,6 @@
 - [x] subsumption order 
 - [x] find critical terms 
 - [x] superposition 
-- [x] critical pairs 
+- [x] ... 
 - [ ] Knuth Bendix completion algorithm 
 - [ ] solving word problem for finitely presented groups 
-- [ ] finding grobner base 
