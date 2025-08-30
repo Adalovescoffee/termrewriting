@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use crate::lexer::Lexer;
 use crate::term::{nodesubst, unification,unifyandfill, Term,from_str}; 
-
+use crate::parser::{Node};
 
 // here there'd be a list of possible rules you can choose, apply superposition 
 // add new rewrite rules, check for confluency 
@@ -127,10 +127,40 @@ impl Structure {
     
     
 }
-pub fn normalize(){
+pub fn normalize(mut axiom: Axiom, axiom_set: &HashSet<Axiom>) -> Axiom {
+    let mut lhs = axiom.lhs;
+    let mut rhs = axiom.rhs;
+    loop {
+        let mut changed_lhs = false; 
+        let mut changed_rhs = false;
+        for axiom in axiom_set {
+            
+            let rewritten_lhs = lhs.rewriteby(((&axiom.lhs.term,axiom.lhs.size),(&axiom.rhs.term,axiom.rhs.size)));
+            let rewritten_rhs = rhs.rewriteby(((&axiom.lhs.term,axiom.lhs.size),(&axiom.rhs.term,axiom.rhs.size)));
+            if rewritten_rhs != rhs {
+                println!("rhs {} => rewritten rhs {}",rhs.term,rewritten_rhs.term);
+                rhs = rewritten_rhs;
+                changed_rhs = true;
+                
+            }
+            if rewritten_lhs != lhs {
+                println!("lhs {} => rewritten lhs {}",lhs.term,rewritten_lhs.term);
+                lhs = rewritten_lhs;
+                changed_lhs = true;
+               
+            }
+            
+            if changed_lhs || changed_rhs == true{
 
 
-
+                break;
+            }
+        }
+        if !changed_lhs && !changed_rhs{
+            return Axiom{lhs:lhs,rhs}; // No changes in a full pass, so we're done
+        }
+    }
+    
 }
 #[cfg (test)]
 mod tests{
@@ -139,6 +169,33 @@ use std::vec;
 use crate::knuthbendix;
 
 use super::*;
+#[test]
+fn leftsidenormalization(){
+
+let axiom = Axiom{lhs:from_str("(--f + -f ) + f").unwrap(),rhs:from_str("0 + f").unwrap()};
+let mut axiomset:HashSet<Axiom> = HashSet::from([
+            Axiom{lhs:from_str("a+0").unwrap(),rhs:from_str("a").unwrap()},
+            Axiom{lhs:from_str("0+b").unwrap(),rhs:from_str("b").unwrap()},
+            Axiom{lhs:from_str("-c+c").unwrap(),rhs:from_str("0").unwrap()},
+            Axiom{lhs:from_str("x+(y+z)").unwrap(),rhs:from_str("(x+y)+z").unwrap()},
+            ]);
+
+println!("{:?}",normalize(axiom, &axiomset));
+}
+#[test]
+fn testforrewrite(){
+let law = from_str("(a+0) =a").unwrap();
+let expression = from_str("(a+0)").unwrap();
+if let Some(((lhs,lhs_size),(rhs,rhs_size))) = law.getequality(){
+    
+println!("term has turned into {:?}",expression.rewriteby(((&lhs,lhs_size),(&rhs,rhs_size))));}
+else {
+
+    println!("{:?}",law);   
+
+
+}
+}
 #[test]
 fn testorderedlaws(){
     let structure = Structure{

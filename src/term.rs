@@ -171,7 +171,15 @@ impl <'a> PartialOrd for BySubsumption<'a> {
 
 
 impl Term{     
-
+pub fn getequality(&self) -> Option<((Node, i16), (Node, i16))> {
+    if let Node::BinaryOp(lhs, Operator::Assign, rhs) = &self.term {
+        let lhs = (*lhs).clone();
+        let rhs = (*rhs).clone();
+        return Some(((*lhs.clone(), lhs.size()), (*rhs.clone(), rhs.size())));
+    } else {
+        return None;
+    }
+}
 
 /// returns the number of operations in a term 
 fn complexitysize(&self)-> i16{// this is when number of operations is the same 
@@ -219,7 +227,7 @@ pub fn rewriteby(&self, law:((&Node,i16),(&Node,i16)))-> Term{
     let (rhs_node,rhs_size) = erhs;
     fn rec(targetnode:&Node,rule_pattern:&Node,subst_pattern:&Node)->(Node,i16){
         if let Some(relations) = matchandassigns(rule_pattern,targetnode ){
-            println!("inside rewrite if {:?}", relations);
+            //println!("inside rewrite if {:?}", relations);
             return nodesubst(subst_pattern,&relations);
 
 
@@ -228,7 +236,7 @@ pub fn rewriteby(&self, law:((&Node,i16),(&Node,i16)))-> Term{
             Node::BinaryOp(lhs,op,rhs) => {
                 let (new_lhs,lhsize) = rec(lhs,rule_pattern,subst_pattern);
                 let (new_rhs,rhsize) = rec(rhs,rule_pattern,subst_pattern);
-                println!("new_lhs,new_rhs, {:?}, {:?}",new_lhs,new_rhs);
+                //println!("new_lhs,new_rhs, {:?}, {:?}",new_lhs,new_rhs);
                 
                 (Node::BinaryOp(Box::new(new_lhs),*op,Box::new(new_rhs)),lhsize + rhsize +1) 
 
@@ -357,7 +365,7 @@ impl fmt::Display for Term {
 
 
 ///check if it's an equality, returns lhs and rhs if it's not 
-pub fn _equalitysides(term:&Node)->Option<(Node,(Node))>{
+pub fn _equalitysides_node(term:&Node)->Option<(Node,Node)>{
     if let Node::BinaryOp(lhs,Operator::Assign ,rhs) = term.clone(){
         return Some((*lhs,*rhs))
     }
@@ -367,6 +375,7 @@ pub fn _equalitysides(term:&Node)->Option<(Node,(Node))>{
     }
 
 }
+
 ///substitutes a node 
 pub fn nodesubst(snode:&Node,relations:&HashMap<char,Node>)->(Node,i16){ 
     
@@ -528,15 +537,16 @@ pub fn from_str(s: &str) -> Result<Term, String> {
         let mut parser = Parser::new(lexer);
 
         match parser.parse_equality() {
-            Ok(((lhs_node, lhs_ops), (rhs_node, _rhs_ops))) => {
+            Ok(((lhs_node, lhs_ops), (rhs_node, rhs_ops))) => {
                 
                 if lhs_node == rhs_node { 
                     Ok(Term { term: lhs_node, size: lhs_ops })
                 } else {
                     // If lhs_node != rhs_node, it means parse_equality found an assignment
                     // for now only viable for single term not assignements 
-                    // 
-                     Ok(Term { term: lhs_node, size: lhs_ops })
+                    // i guess time to fix assignements :) 
+                   let term = Node::BinaryOp(Box::new(lhs_node),Operator::Assign,Box::new(rhs_node));
+                Ok(Term{term:term,size:lhs_ops + rhs_ops + 1})
                 }
             },
             Err(e) => Err(format!("Parsing error for '{}': {:?}", s, e)),
