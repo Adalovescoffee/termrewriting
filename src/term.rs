@@ -10,7 +10,7 @@ use crate::parser::{ Node, Operator,Parser,ParserError};
 //#[derive(PartialEq, Eq)]
 
 /// a term is a node (variable,number, binary operation of nodes) and has a size (number of operations)
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,Hash)]
 pub struct Term {
     pub term:Node,
     pub size:i16,

@@ -1,7 +1,7 @@
 //use std::any::Any;
 use std::fmt;
 use crate::lexer::{Lexer,TokenType};
-#[derive(PartialEq,Debug,Clone)]
+#[derive(PartialEq,Debug,Clone,Hash)]
 /// a node is either a number a variable or a binary op of itself 
 pub enum Node{
     Number(i64),
@@ -60,7 +60,7 @@ pub enum ParserError {
     
     _LexerError(String), // Placeholder if lexer errors need to be propagated
 }
-#[derive(Debug,PartialEq,Clone,Copy)]
+#[derive(Debug,PartialEq,Clone,Copy,Hash)]
 /// operator can either be '+','-','*','/','=', for the sake of group theory, ^-1 needs to be implemented eventually 
 pub enum Operator{
     Add,

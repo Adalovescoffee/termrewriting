@@ -1,5 +1,6 @@
 use core::fmt; 
 use std::collections::{HashMap, HashSet};
+use std::hash::Hash;
 use crate::lexer::Lexer;
 use crate::term::{nodesubst, unification,unifyandfill, Term,from_str}; 
 
@@ -8,7 +9,7 @@ use crate::term::{nodesubst, unification,unifyandfill, Term,from_str};
 // add new rewrite rules, check for confluency 
 // fix commutativity 
 // 
-#[derive(Clone,Debug,PartialEq)]
+#[derive(Clone,Debug,Eq,PartialEq,Hash)]
 pub struct Axiom {
     pub lhs:Term,
     pub rhs:Term
@@ -41,7 +42,7 @@ impl Axiom {
         }
     }
     
-    fn normalize(&self) ->Axiom {
+    fn order(&self) ->Axiom {
         if self.lhs>self.rhs {
             let axiom = self.clone();
             return axiom
@@ -80,50 +81,57 @@ impl Axiom {
 }
 #[derive(Debug)]
 pub struct Structure {
-    pub axioms: Vec<Axiom>,
+    pub axioms: HashSet<Axiom>,
 
 }
 impl Structure {
-    fn builder(){
+    
+    pub fn builder(){
 
 
 
 
     }
-    
-    pub fn knuthbendix(self)->Structure {
-        let mut ruleset:Vec<Axiom> = Vec::new();
-        let mut axiomset:Vec<Axiom>= self.axioms.into_iter().collect();
-        while let Some(axiom)= axiomset.pop(){
-            let normalized = axiom.normalize();
-            ruleset.push( normalized);
-            let mut new_axioms = Vec::new();
-            for rest in &axiomset{
-                
-                if let Some(newaxiom) = axiom.criticalpairs(rest){
-                    if !axiomset.contains(&newaxiom){
-                   new_axioms.push(newaxiom);}
+    pub fn ordered(self)->Structure{
+        let mut orderedhashset:HashSet<Axiom> = HashSet::new();
+        for axiom in self.axioms{
+            let ordered_axiom = axiom.order();
+            orderedhashset.insert(ordered_axiom);
 
-                }
-                
+        }
+        return Structure{axioms:orderedhashset}
+    }
+    
+    pub fn knuthbendix(self)->Option<Structure> {
+        let mut ruleset:HashSet<Axiom> = HashSet::new();
+        let mut axiomset:HashSet<Axiom>= self.axioms.clone();
+        let mut axiomsetvec:Vec<Axiom> = self.axioms.into_iter().collect();
+        while !axiomset.is_empty(){
+            let mut axiom = axiomsetvec.pop().unwrap();
+            axiomset.retain(|f| *f!=axiom); // hopefully this only retains everything but axiom
+            axiom = axiom.order();
+            if axiom.lhs!= axiom.rhs{
+
+
 
             }
 
-            axiomset.extend(new_axioms);
-        if (ruleset.len()>50){
 
-            break
-        }
+
+
 
         }
-        return Structure { axioms: ruleset }
-
+        return None
     }
 
     
     
 }
+pub fn normalize(){
 
+
+
+}
 #[cfg (test)]
 mod tests{
 use std::vec;
@@ -132,7 +140,26 @@ use crate::knuthbendix;
 
 use super::*;
 #[test]
-fn grouptheoryfirsttrymaybeihope(){
+fn testorderedlaws(){
+    let structure = Structure{
+        axioms: HashSet::from([
+            Axiom{lhs:from_str("a+0").unwrap(),rhs:from_str("a").unwrap()},
+            Axiom{lhs:from_str("b").unwrap(),rhs:from_str("0+b").unwrap()},
+            Axiom{lhs:from_str("-c+c").unwrap(),rhs:from_str("0").unwrap()},
+            Axiom{lhs:from_str("(x+y)+z").unwrap(),rhs:from_str("x+(y+z)").unwrap()},
+            ]),
+        };
+        let ordered_structure = structure.ordered();
+        for axiom in ordered_structure.axioms {
+        println!("{}={}",axiom.lhs.term,axiom.rhs.term);
+
+
+    }
+
+
+}
+#[test]
+fn grouptheoryfirsttrymaybeihope(){/* 
     let structure = Structure{
         axioms: vec![
         Axiom{lhs:from_str("a+0").unwrap(),rhs:from_str("a+0").unwrap()},
@@ -153,7 +180,7 @@ fn grouptheoryfirsttrymaybeihope(){
     }
 
 
+
+*/
 }
-
-
 }
