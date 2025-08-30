@@ -1,5 +1,5 @@
 use core::fmt; 
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet,VecDeque};
 use std::hash::Hash;
 use crate::lexer::Lexer;
 use crate::term::{nodesubst, unification,unifyandfill, Term,from_str}; 
@@ -42,7 +42,7 @@ impl Axiom {
         }
     }
     
-    fn order(&self) ->Axiom {
+    pub fn order(&self) ->Axiom {
         if self.lhs>self.rhs {
             let axiom = self.clone();
             return axiom
@@ -102,27 +102,38 @@ impl Structure {
         return Structure{axioms:orderedhashset}
     }
     
-    pub fn knuthbendix(self)->Option<Structure> {
-        let mut ruleset:HashSet<Axiom> = HashSet::new();
-        let mut axiomset:HashSet<Axiom>= self.axioms.clone();
-        let mut axiomsetvec:Vec<Axiom> = self.axioms.into_iter().collect();
-        while !axiomset.is_empty(){
-            let mut axiom = axiomsetvec.pop().unwrap();
-            axiomset.retain(|f| *f!=axiom); // hopefully this only retains everything but axiom
-            axiom = axiom.order();
-            if axiom.lhs!= axiom.rhs{
+   pub fn knuth_bendix(mut self) -> Structure {
+    let mut ruleset: HashSet<Axiom> = HashSet::new();
+    let mut axioms_to_process: VecDeque<Axiom> = self.axioms.into_iter().collect();
 
+    while let Some(axiom) = axioms_to_process.pop_front() {
+        // Here, your normalize function is used to normalize both sides.
+        // It should take a term and the ruleset to perform the reduction.
+        let normalized = normalize(axiom.clone(), &ruleset);
+        
 
-
-            }
-
-
-
-
-
+        // Check for redundancy after normalization.
+        if normalized.lhs== normalized.rhs {
+            continue;
         }
-        return None
+
+        // Orient the axiom into a rule.
+        let new_rule = normalized.order();
+        // Generate critical pairs between the new rule and all existing rules.
+        for existing_rule in ruleset.iter() {
+            if let Some(critical_pair) = existing_rule.criticalpairs(&new_rule) {
+                // Add new pairs to the queue for processing.
+                axioms_to_process.push_back(critical_pair);
+            }
+        }
+
+        // Add the new rule to the ruleset.
+        ruleset.insert(new_rule);
     }
+
+    // The final set of rules.
+    Structure { axioms: ruleset }
+}
 
     
     
@@ -138,13 +149,13 @@ pub fn normalize(mut axiom: Axiom, axiom_set: &HashSet<Axiom>) -> Axiom {
             let rewritten_lhs = lhs.rewriteby(((&axiom.lhs.term,axiom.lhs.size),(&axiom.rhs.term,axiom.rhs.size)));
             let rewritten_rhs = rhs.rewriteby(((&axiom.lhs.term,axiom.lhs.size),(&axiom.rhs.term,axiom.rhs.size)));
             if rewritten_rhs != rhs {
-                println!("rhs {} => rewritten rhs {}",rhs.term,rewritten_rhs.term);
+                //println!("rhs {} => rewritten rhs {}",rhs.term,rewritten_rhs.term);
                 rhs = rewritten_rhs;
                 changed_rhs = true;
                 
             }
             if rewritten_lhs != lhs {
-                println!("lhs {} => rewritten lhs {}",lhs.term,rewritten_lhs.term);
+                //println!("lhs {} => rewritten lhs {}",lhs.term,rewritten_lhs.term);
                 lhs = rewritten_lhs;
                 changed_lhs = true;
                
@@ -157,7 +168,7 @@ pub fn normalize(mut axiom: Axiom, axiom_set: &HashSet<Axiom>) -> Axiom {
             }
         }
         if !changed_lhs && !changed_rhs{
-            return Axiom{lhs:lhs,rhs}; // No changes in a full pass, so we're done
+            return Axiom{lhs:lhs,rhs}; //  this works 
         }
     }
     
@@ -201,7 +212,7 @@ fn testorderedlaws(){
     let structure = Structure{
         axioms: HashSet::from([
             Axiom{lhs:from_str("a+0").unwrap(),rhs:from_str("a").unwrap()},
-            Axiom{lhs:from_str("b").unwrap(),rhs:from_str("0+b").unwrap()},
+            Axiom{lhs:from_str("0+b").unwrap(),rhs:from_str("b").unwrap()},
             Axiom{lhs:from_str("-c+c").unwrap(),rhs:from_str("0").unwrap()},
             Axiom{lhs:from_str("(x+y)+z").unwrap(),rhs:from_str("x+(y+z)").unwrap()},
             ]),
@@ -216,20 +227,16 @@ fn testorderedlaws(){
 
 }
 #[test]
-fn grouptheoryfirsttrymaybeihope(){/* 
+fn grouptheoryfirsttrymaybeihope(){
     let structure = Structure{
-        axioms: vec![
-        Axiom{lhs:from_str("a+0").unwrap(),rhs:from_str("a+0").unwrap()},
-        Axiom{lhs:from_str("0+b").unwrap(),rhs:from_str("b+0").unwrap()},
-        Axiom{lhs:from_str("-c+c").unwrap(),rhs:from_str("0").unwrap()},
-        Axiom{lhs:from_str("(x+y)+z").unwrap(),rhs:from_str("x+(y+z)").unwrap()}
-
-
-
-
-        ]
-    };
-    let axioms = structure.knuthbendix().axioms;
+        axioms: HashSet::from([
+            Axiom{lhs:from_str("a+0").unwrap(),rhs:from_str("a").unwrap()},
+            Axiom{lhs:from_str("0+ b").unwrap(),rhs:from_str("b").unwrap()},
+            Axiom{lhs:from_str("-c+c").unwrap(),rhs:from_str("0").unwrap()},
+            Axiom{lhs:from_str("(x+y)+z").unwrap(),rhs:from_str("x+(y+z)").unwrap()},
+            ]),
+        };
+    let axioms = structure.knuth_bendix().axioms;
     for axiom in axioms {
         println!("{}={}",axiom.lhs.term,axiom.rhs.term);
 
@@ -238,6 +245,6 @@ fn grouptheoryfirsttrymaybeihope(){/*
 
 
 
-*/
+
 }
 }
