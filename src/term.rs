@@ -36,47 +36,45 @@ impl PartialEq for Term {
 
 // Helper function to compare node structures
 fn nodes_equal(node1: &Node, node2: &Node) -> bool {
-    let mut variableequality:HashMap<char,char> = HashMap::new();
-    fn rec(node1:&Node,node2:&Node,variableequality: &mut HashMap<char, char>)-> bool {
-    match (node1, node2) {
-        (Node::Number(n1), Node::Number(n2)) => n1 == n2,
-        (Node::Variable(c1), Node::Variable(c2)) => {
-            if !variableequality.contains_key(c1) && !variableequality.contains_key(c2){
-                variableequality.insert(*c1, *c2);
-                variableequality.insert(*c2, *c1);
-                return true;
-            }
-            else {
-                if variableequality.contains_key(c1){
-                    return c2 == variableequality.get(c1).unwrap() && c1 == variableequality.get(c2).unwrap() // this is safe 
-                        
-
-
+    let mut variable_equality: HashMap<char, char> = HashMap::new();
+    
+    fn rec(node1: &Node, node2: &Node, variable_equality: &mut HashMap<char, char>) -> bool {
+        match (node1, node2) {
+            (Node::Number(n1), Node::Number(n2)) => n1 == n2,
+            (Node::Variable(c1), Node::Variable(c2)) => {
+                
+                if let (Some(mapped_c1), Some(mapped_c2)) = (
+                    variable_equality.get(c1),
+                    variable_equality.get(c2),
+                ) {
+                   
+                    *mapped_c1 == *c2 && *mapped_c2 == *c1
+                } else if let Some(mapped_c1) = variable_equality.get(c1) {
                     
-
-
+                    *mapped_c1 == *c2
+                } else if let Some(mapped_c2) = variable_equality.get(c2) {
+                    
+                    *mapped_c2 == *c1
+                } else {
+                    
+                    variable_equality.insert(*c1, *c2);
+                    variable_equality.insert(*c2, *c1);
+                    true
                 }
-                else {
-                    return c2 == variableequality.get(c1).unwrap() && c1 == variableequality.get(c2).unwrap()
-
-
-                }
-
-
             }
-            
-            
+            (Node::UnaryOp(op1, rhs1), Node::UnaryOp(op2, rhs2)) => {
+                op1 == op2 && rec(rhs1, rhs2, variable_equality)
             }
-        (Node::UnaryOp(op1, rhs1), Node::UnaryOp(op2, rhs2)) => {
-            op1 == op2 && rec(rhs1, rhs2,variableequality)
+            (Node::BinaryOp(lhs1, op1, rhs1), Node::BinaryOp(lhs2, op2, rhs2)) => {
+                op1 == op2 
+                    && rec(lhs1, lhs2, variable_equality) 
+                    && rec(rhs1, rhs2, variable_equality)
+            }
+            _ => false,
         }
-        (Node::BinaryOp(lhs1, op1, rhs1), Node::BinaryOp(lhs2, op2, rhs2)) => {
-            op1 == op2 && rec(lhs1, lhs2,variableequality) && rec(rhs1, rhs2,variableequality)
-        }
-        _ => false,
     }
-    }
-    return rec(node1,node2,&mut variableequality)
+    
+    rec(node1, node2, &mut variable_equality)
 }
 
 /// order of complexity aka comparing the number of operations in a tree + checking the lhnode of the trees if equality   
@@ -222,10 +220,11 @@ pub fn rewriteby(&self, law:((&Node,i16),(&Node,i16)))-> Term{
 
         }
     };*/
+    
     let (elhs, erhs) = law;
     let (lhs_node,lhs_size) = elhs;
     let (rhs_node,rhs_size) = erhs;
-    
+    //let self_renamed = changecommonvariables(&self, &Term{term:lhs_node.clone(),size:lhs_size});
     fn rec(targetnode:&Node,rule_pattern:&Node,subst_pattern:&Node)->(Node,i16){
         if let Some(relations) = matchandassigns(rule_pattern,targetnode ){
             //println!("inside rewrite if {:?}", relations);
@@ -447,31 +446,43 @@ pub fn countsize(node:&Node)->i16{
 
 }
 
-pub fn changecommonvariables(pattern:&Node,target:&Node)->Node{
-    let pattern_variables = variable(pattern);
-    let target_variables = variable(target);
+pub fn changecommonvariables(pattern:&Term,target:&Term)->(Term,HashMap<char,Node>){
+    let pattern_variables = variable(&pattern.term);
+    let target_variables = variable(&target.term);
+    let size = pattern.size;
     let commonchars: HashSet<char> = pattern_variables.intersection(&target_variables).cloned().collect();
     let alphabet = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
     let alphabetset:HashSet<char> = alphabet.into_iter().collect();
-    let patternterm = Term{term:pattern.clone(),size:0};
-    let union:HashSet<char>= pattern_variables.union(&target_variables).cloned().collect();
+    let mut recording_hash:HashMap<char,Node> = HashMap::new();
+    //let patternterm = Term{term:pattern.clone(),size:0};
+    //let union:HashSet<char>= pattern_variables.union(&target_variables).cloned().collect();
     let mut difference: Vec<char> = alphabetset.difference(&commonchars).cloned().collect();
-    pub fn rec(pattern: &Node, commonchars: HashSet<char>, difference: &mut Vec<char>) -> Node {
+    pub fn rec(pattern: &Node, commonchars: HashSet<char>, difference: &mut Vec<char>, hash:&mut HashMap<char,Node>) -> Node {
         
         match pattern {
             Node::BinaryOp(lhs, Operator, rhs) => {
-                return Node::BinaryOp(Box::new(rec(&lhs, commonchars.clone(), difference)), *Operator, Box::new(rec(&rhs, commonchars, difference)))
+                return Node::BinaryOp(Box::new(rec(&lhs, commonchars.clone(), difference,hash)), *Operator, Box::new(rec(&rhs, commonchars, difference,hash)))
 
             }
             Node::Variable(char) => {
                 if commonchars.contains(&char){
                     if let Some(c) = difference.pop(){
-                        return Node::Variable(c);
+                        
+                        //checking that this wasn't met before 
+                        if let Some(Node::Variable(p)) = hash.get(&char){
+                            return Node::Variable(*p);
 
+
+                        }
+                        else {
+                        hash.insert(*char, Node::Variable(c));
+                        return Node::Variable(c);
+                        }
 
                     }
                     else {
                         println!("not enough letters in the alphabet :c ");
+                        hash.insert(*char, Node::Variable(*char));
                         return Node::Variable(*char);
 
                     }
@@ -484,7 +495,7 @@ pub fn changecommonvariables(pattern:&Node,target:&Node)->Node{
             }
             }
             Node::UnaryOp(op,rhs ) => {
-                return Node::UnaryOp(*op,Box::new(rec(&rhs,commonchars, difference)))
+                return Node::UnaryOp(*op,Box::new(rec(&rhs,commonchars, difference,hash)))
 
 
             }
@@ -496,7 +507,7 @@ pub fn changecommonvariables(pattern:&Node,target:&Node)->Node{
 
 
     }
-return rec(pattern,commonchars,&mut difference)
+return (Term{term:rec(&pattern.term,commonchars,&mut difference,&mut recording_hash),size:size},recording_hash)
 
 
 
@@ -505,7 +516,7 @@ return rec(pattern,commonchars,&mut difference)
 // what i need rn is a function that takes this matchandbinds if it return a failure on a given node in the b 
 /// On a given node of the ast, it attempts to match if one node can be substituted (subsumpted?)
 pub fn matchandassigns(pattern:&Node, target:&Node)->Option<HashMap<char,Node>>{  // this is called basic unification apparently
-    
+    //let patternrenamed = changecommonvariables(pattern, target);
     let mut relations = HashMap::new();
     pub fn matchandbinds(pattern:&Node, target:&Node, relations:&mut HashMap<char,Node>)->bool{ 
             if pattern.same_type(target)== false{
@@ -616,12 +627,16 @@ mod tests {
     fn bin_op(lhs: Node, op: Operator, rhs: Node) -> Node {
         Node::BinaryOp(Box::new(lhs), op, Box::new(rhs))
     }
+    
     #[test]
     fn renaming(){
-        let t1 = from_str("(f + 0)+ c").unwrap();
-        let t2 = from_str("(f + 0) + c").unwrap();
-        let renamed = changecommonvariables(&t1.term, &t2.term);
-        println!("{}",renamed);
+        let t1 = from_str("(a + 0)+ a").unwrap();
+        let t2 = from_str("a  + c").unwrap();
+        let renamed = changecommonvariables(&t1, &t2);
+        let nodesubstitution = nodesubst(&t2.term, &renamed.1);
+        println!("{}",renamed.0);
+        println!("substitution : {}",Term{term:nodesubstitution.0,size:nodesubstitution.1});
+      
 
 
 
@@ -765,7 +780,7 @@ mod tests {
 
         println!("Hashmap for (-a +a -> (x+y)+z ) is {:?}",matchandassigns(&t2.term, &t1.term));
         let boolt = term1 >term2;
-        //assert_eq!(boolt,true)
+        assert_eq!(boolt,false)
 
 
 
@@ -1030,8 +1045,9 @@ pub fn occurs( variable_char:char,node:&Node)-> bool{
 pub fn unification(pattern: &Term, target: &Term) -> Option<HashMap<char, Node>> {
     let mut relations: HashMap<char, Node> = HashMap::new();
     let mut chars: HashSet<char> = HashSet::new();
-    let patternterm = &pattern.term;
+    
     let targetterm= &target.term;
+    let patternterm = &pattern.term;
     fn fifi( pattern: &Node, target: &Node, relations: &mut HashMap<char, Node>, chars: &mut HashSet<char> ) -> bool {
         let root_pattern = match pattern {
             Node::Variable(c) => find(*c, relations),

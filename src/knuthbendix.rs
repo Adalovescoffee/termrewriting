@@ -2,7 +2,7 @@ use core::fmt;
 use std::collections::{HashMap, HashSet,VecDeque};
 use std::hash::Hash;
 use crate::lexer::Lexer;
-use crate::term::{nodesubst, unification,unifyandfill, Term,from_str}; 
+use crate::term::{changecommonvariables, from_str, matchandassigns, nodesubst, unification, unifyandfill, Term}; 
 use crate::parser::{Node};
 
 // here there'd be a list of possible rules you can choose, apply superposition 
@@ -15,7 +15,21 @@ pub struct Axiom {
     pub rhs:Term
 }   
 impl Axiom {
-    fn _criticalterms(&self,other:&Axiom)->Option<(Term,Term)>{
+    /// changes the common variables between two laws 
+fn changevariables(&self,other:&Axiom)->Axiom{
+    let (first_lhs,hash) = changecommonvariables(&self.lhs, &other.lhs);
+    
+    //let hash = matchandassigns(&self.rhs.term,&first_lhs.term ).unwrap();
+    
+    
+    let (rhs_node,rhs_size) = nodesubst(&self.rhs.term, &hash);
+    let first_rhs = Term{term:rhs_node,size:rhs_size};
+    return Axiom{lhs:first_lhs,rhs:first_rhs}
+
+
+
+    }
+    fn criticalterms(&self,other:&Axiom)->Option<(Term,Term)>{
         if let Some(substitution) = unifyandfill(&self.lhs, &other.lhs){
             
             let (axiom1lhs,size1) = nodesubst(&self.lhs.term, &substitution);
@@ -57,8 +71,8 @@ impl Axiom {
     }
     
     fn criticalpairs(&self,other:&Axiom)->Option<Axiom>{
-
-        if let Some((lhs,rhs)) = self._criticalterms(other){
+        //let other_renamed = &Axiom{lhs:changecommonvariables(&self.lhs, &other.lhs),rhs:changecommonvariables(&self.rhs, &other.rhs)};
+        if let Some((lhs,rhs)) = self.criticalterms(other){// issues here
             if lhs == rhs {
                 return None
 
@@ -139,8 +153,9 @@ impl Structure {
     
 }
 pub fn normalize(mut axiom: Axiom, axiom_set: &HashSet<Axiom>) -> Axiom {
-    let mut lhs = axiom.lhs;
+    
     let mut rhs = axiom.rhs;
+    let mut lhs = axiom.lhs;
     loop {
         let mut changed_lhs = false; 
         let mut changed_rhs = false;
@@ -181,14 +196,22 @@ use crate::knuthbendix;
 
 use super::*;
 #[test]
+fn testchangingvariables(){
+    let axiom1 = Axiom{lhs:from_str("(a+ 0 ) + a").unwrap(),rhs:from_str("0 + a").unwrap()};
+    let axiom2 = Axiom{lhs:from_str("a+0").unwrap(),rhs:from_str("a").unwrap()};
+    let axiom_changed = axiom1.changevariables(&axiom2);
+    println!("{}->{}",axiom_changed.lhs,axiom_changed.rhs);
+
+}
+#[test]
 fn leftsidenormalization(){
 
-let axiom = Axiom{lhs:from_str("(--f + -f ) + f").unwrap(),rhs:from_str("0 + f").unwrap()};
+let axiom = Axiom{lhs:from_str("(a+ 0 ) + a").unwrap(),rhs:from_str("0 + a").unwrap()};
 let mut axiomset:HashSet<Axiom> = HashSet::from([
             Axiom{lhs:from_str("a+0").unwrap(),rhs:from_str("a").unwrap()},
-            Axiom{lhs:from_str("0+b").unwrap(),rhs:from_str("b").unwrap()},
-            Axiom{lhs:from_str("-c+c").unwrap(),rhs:from_str("0").unwrap()},
-            Axiom{lhs:from_str("x+(y+z)").unwrap(),rhs:from_str("(x+y)+z").unwrap()},
+            Axiom{lhs:from_str("0+a").unwrap(),rhs:from_str("a").unwrap()},
+            Axiom{lhs:from_str("-a+a").unwrap(),rhs:from_str("0").unwrap()},
+            Axiom{lhs:from_str("a+(y+z)").unwrap(),rhs:from_str("(a+y)+z").unwrap()},
             ]);
 
 println!("{:?}",normalize(axiom, &axiomset));
@@ -233,7 +256,7 @@ fn grouptheoryfirsttrymaybeihope(){
             Axiom{lhs:from_str("a+0").unwrap(),rhs:from_str("a").unwrap()},
             Axiom{lhs:from_str("0+ b").unwrap(),rhs:from_str("b").unwrap()},
             Axiom{lhs:from_str("-c+c").unwrap(),rhs:from_str("0").unwrap()},
-            Axiom{lhs:from_str("(x+y)+z").unwrap(),rhs:from_str("x+(y+z)").unwrap()},
+            Axiom{lhs:from_str("x + (y + z)").unwrap(),rhs:from_str("(x+y)+z").unwrap()},
             ]),
         };
     let axioms = structure.knuth_bendix().axioms;
