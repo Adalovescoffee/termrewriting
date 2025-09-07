@@ -1,7 +1,7 @@
 //use std::any::Any;
 use std::fmt;
 use crate::lexer::{Lexer,TokenType};
-#[derive(PartialEq,Debug,Clone)]
+#[derive(PartialEq,Debug,Clone,Hash)]
 /// a node is either a number a variable or a binary op of itself 
 pub enum Node{
     Number(i64),
@@ -29,6 +29,20 @@ impl Node{
 
     
   }
+  pub fn size(self)->i16{
+            match self {
+                Node::Number(_) => 0,
+                Node::Variable(_) =>0, 
+                Node::BinaryOp(lhs,_ ,rhs ) =>{
+                    1 + lhs.size() + rhs.size()
+
+
+                }
+                Node::UnaryOp(_,rhs)=> {
+                    1 + rhs.size()}// idk if it should add 1 or not we'll see  
+
+            }
+        }
   /// previous get_char from back when i didn't know rust had cool patternmatching
   pub fn _get_char(&self) -> Option<char>{
     match self{
@@ -60,7 +74,7 @@ pub enum ParserError {
     
     _LexerError(String), // Placeholder if lexer errors need to be propagated
 }
-#[derive(Debug,PartialEq,Clone,Copy)]
+#[derive(Debug,PartialEq,Clone,Copy,Hash)]
 /// operator can either be '+','-','*','/','=', for the sake of group theory, ^-1 needs to be implemented eventually 
 pub enum Operator{
     Add,
@@ -212,7 +226,7 @@ impl Parser {
             position: self.lexer.position, // fixed ehehe i think 
         }),
     };
-    println!("{:?}",node);
+    //println!("{:?}",node);
     node
     }
     // for * / and stuff inside () 
@@ -237,7 +251,7 @@ pub fn parse_equality(&mut self) -> Result<((Node,i16),(Node,i16)),ParserError> 
 
 fn parse_tuah(&mut self ) -> Result<(Node,i16), ParserError> {
     let (mut lhs,mut opsnumber) = self.parse_factor()?;// in the case "c*(a*b) this is c "
-    println!("{}",lhs);
+    //println!("{}",lhs);
     loop {
         match self.current_token {
             
@@ -463,5 +477,5 @@ mod tests {
 
 
     }
-
+    
 }
